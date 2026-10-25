@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETS2 Tuner (Beta)</title>
+<style>
+:root{
+  --bg:#121417; --panel:#191c20; --panel2:#1f2328; --line:#2c3138; --line2:#383e46;
+  --text:#d9dde3; --mute:#8b939e; --dim:#5d6570;
+  --acc:#ff8a00; --acc2:#ffb35c; --pow:#4fb3ff; --ok:#3ecf8e; --bad:#ff5d5d; --orig:#6c7480;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#1a1100;font-weight:600}
+button.pri:hover{background:var(--acc2)}
+button.soft{background:#2a1d0d;border-color:#8a5413;color:var(--acc2);font-weight:600}
+button.soft:hover{border-color:var(--acc);background:#36240f}
+button.ghost{background:transparent;border-color:transparent;color:var(--mute)}
+button.ghost:hover{color:var(--text);border-color:var(--line2)}
+button:disabled{opacity:.4;cursor:default}
+input[type=text],input[type=number],select{background:#0e1013;border:1px solid var(--line2);border-radius:4px;padding:5px 7px;min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--acc)}
+.app{display:grid;grid-template-rows:40px 1fr 26px;height:100vh}
+header{display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{font-weight:700;letter-spacing:.5px}
+.logo b{color:var(--acc)}
+header .sp{flex:1}
+.main{display:grid;grid-template-columns:310px 1fr;min-height:0}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.sec{padding:10px 12px;border-bottom:1px solid var(--line)}
+.sec h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mute);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.sec select{width:100%}
+.tabs{display:flex;gap:4px;margin-bottom:6px}
+.tabs button{flex:1;padding:4px}
+.tabs button.on{border-color:var(--acc);color:var(--acc)}
+.clist{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:4px;background:#0f1114}
+.citem{padding:5px 8px;cursor:pointer;border-bottom:1px solid #1b1e22;display:flex;justify-content:space-between;gap:8px}
+.citem:hover{background:#1a1e23}
+.citem.on{background:#2a1d0d;box-shadow:inset 3px 0 0 var(--acc)}
+.citem .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.citem .s{color:var(--mute);font-family:var(--mono);font-size:11px;white-space:nowrap}
+.citem .dot{color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:3px 9px;border-radius:12px;border:1px solid var(--line2);cursor:pointer;background:var(--panel2);font-size:12px}
+.chip.on{border-color:var(--acc);background:#2a1d0d;color:var(--acc2)}
+.chip.serie{color:var(--mute)}
+.chip .x{margin-left:6px;color:var(--dim)}
+.chip .x:hover{color:var(--bad)}
+.tree{flex:1;overflow:auto;padding:6px 0 12px}
+.tgrp{padding:6px 12px 3px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.8px;cursor:pointer;user-select:none}
+.tgrp::before{content:"▾ ";color:var(--dim)}
+.tgrp.closed::before{content:"▸ "}
+.titem{padding:4px 12px 4px 24px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.titem:hover{background:#1a1e23}
+.titem.on{background:#2a1d0d;color:var(--acc2)}
+.titem .ic{width:16px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:11px}
+.titem .mod{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.titem .unset{margin-left:auto;font-size:10px;color:var(--dim)}
+section.work{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.crumb{padding:10px 18px 0;color:var(--mute);font-size:12px}
+.crumb b{color:var(--text)}
+.title{padding:2px 18px 8px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px}
+.badge{font-size:11px;padding:2px 7px;border-radius:3px;border:1px solid var(--line2);color:var(--mute);font-weight:500}
+.badge.acc{border-color:var(--acc);color:var(--acc)}
+.kpis{display:flex;gap:10px;padding:0 18px 12px;flex-wrap:wrap}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-width:140px}
+.kpi .l{font-size:11px;color:var(--mute)}
+.kpi .v{font-size:18px;font-weight:600;font-family:var(--mono)}
+.kpi .d{font-size:11px;font-family:var(--mono)}
+.up{color:var(--ok)} .dn{color:var(--bad)}
+.edwrap{display:grid;grid-template-columns:1fr 280px;gap:14px;padding:0 18px 18px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.card .hd{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card .hd .t{font-weight:600;margin-right:auto}
+.card .bd{padding:12px}
+.desc{padding:12px;font-size:13px;color:#c3c9d1}
+.desc h5{margin:0 0 6px;font-size:12px;color:var(--acc2);text-transform:uppercase;letter-spacing:.6px}
+.desc p{margin:0 0 10px}
+.desc .tip{border-left:3px solid var(--acc);padding:6px 9px;background:#1d1a15;font-size:12px;margin-bottom:10px}
+.desc .warn{border-left:3px solid var(--bad);padding:6px 9px;background:#1f1616;font-size:12px;margin-bottom:10px}
+.desc code{font-family:var(--mono);font-size:11.5px;color:var(--acc2)}
+svg.chart{width:100%;height:380px;display:block;user-select:none;touch-action:none}
+svg.chart text{fill:var(--mute);font-size:11px;font-family:var(--mono)}
+svg.chart .grid{stroke:#262b31}
+svg.chart .pt{cursor:ns-resize}
+svg.chart .pt:hover{r:7}
+.tblwrap{overflow:auto;border-top:1px solid var(--line)}
+table.map{border-collapse:collapse;font-family:var(--mono);font-size:12px;min-width:100%}
+table.map th,table.map td{border:1px solid #262b31;padding:0;text-align:right;white-space:nowrap}
+table.map th{background:#15181c;color:var(--mute);font-weight:500;padding:4px 8px;text-align:left;position:sticky;left:0;z-index:1}
+table.map td input{width:100%;min-width:62px;background:transparent;border:0;border-radius:0;text-align:right;padding:5px 7px;font-family:var(--mono)}
+table.map td.ro{padding:5px 7px;color:var(--mute)}
+table.map td.sel{background:#3a2a12 !important}
+table.map td.inc{background:#13261c}
+table.map td.dec{background:#2a1616}
+table.map td input:disabled{color:var(--mute)}
+.tools{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.tools .sep{width:1px;height:20px;background:var(--line2);margin:0 4px}
+.tools label{color:var(--mute);font-size:12px;display:flex;gap:5px;align-items:center}
+.tools input[type=number]{width:80px}
+.valbox{display:grid;gap:14px}
+.bignum{display:flex;align-items:center;gap:10px}
+.bignum input{font-size:28px;font-family:var(--mono);width:200px;text-align:right;padding:6px 10px}
+.bignum .u{font-size:16px;color:var(--mute)}
+.cmp{display:flex;gap:24px;font-family:var(--mono);font-size:12px;color:var(--mute)}
+.cmp b{color:var(--text);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sw{display:flex;align-items:center;gap:16px}
+.sw .tg{width:120px;height:44px;border-radius:6px;border:1px solid var(--line2);background:#0e1013;display:flex;overflow:hidden;cursor:pointer;font-family:var(--mono);font-size:18px;font-weight:700}
+.sw .tg span{flex:1;display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.sw .tg span.on0{background:#2a1616;color:var(--bad)}
+.sw .tg span.on1{background:#13261c;color:var(--ok)}
+.sw.dis .tg{opacity:.5;cursor:default}
+.rangebar{position:relative;height:46px;margin:10px 6px 4px}
+.rangebar .track{position:absolute;top:18px;left:0;right:0;height:10px;background:#0e1013;border:1px solid var(--line2);border-radius:5px}
+.rangebar .fill{position:absolute;top:18px;height:10px;background:var(--acc);border-radius:5px;opacity:.85}
+.rangebar .ofill{position:absolute;top:31px;height:4px;background:var(--orig);border-radius:2px}
+.rangebar .h{position:absolute;top:12px;width:14px;height:22px;margin-left:-7px;background:var(--acc2);border-radius:3px;cursor:ew-resize}
+.rangebar .tick{position:absolute;top:38px;font-size:10px;color:var(--dim);font-family:var(--mono);transform:translateX(-50%)}
+.empty{padding:60px 30px;text-align:center;color:var(--mute)}
+.empty h2{color:var(--text);font-weight:600}
+footer{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:12px;color:var(--mute)}
+footer .sp{flex:1}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:8px;width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column}
+.modal .mh{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:15px;display:flex;align-items:center}
+.modal .mh .sp{flex:1}
+.modal .mb{padding:14px 16px;overflow:auto}
+.modal .mf{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.frow{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center;margin-bottom:10px}
+.frow .st{font-size:11px;font-family:var(--mono)}
+.hint{font-size:12px;color:var(--mute);margin:4px 0 12px}
+.hint a{color:var(--acc2)}
+.log{background:#0b0c0e;border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:11.5px;height:180px;overflow:auto;padding:8px;white-space:pre-wrap;color:#aab2bc}
+.prog{height:6px;background:#0e1013;border-radius:3px;overflow:hidden;margin:8px 0}
+.prog div{height:100%;background:var(--acc);width:0;transition:width .3s}
+table.ex{width:100%;border-collapse:collapse}
+table.ex td,table.ex th{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left;font-size:12.5px}
+table.ex th{color:var(--mute);font-weight:500;font-size:11px;text-transform:uppercase}
+table.ex input[type=text]{width:120px}
+pre.prev{background:#0b0c0e;border:1px solid var(--line);border-radius:4px;padding:10px;font-family:var(--mono);font-size:11.5px;max-height:360px;overflow:auto;white-space:pre}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#22272e;border:1px solid var(--line2);padding:10px 16px;border-radius:6px;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.toast.err{border-color:var(--bad)}
+.ro-note{margin:0 18px 12px;padding:8px 12px;border:1px dashed var(--line2);border-radius:6px;color:var(--mute);display:flex;align-items:center;gap:10px}
+.ro-note .sp{flex:1}
+.badge.beta{border-color:#e5484d;color:#ff8b8b;font-weight:700;letter-spacing:.5px}
+.langsw{display:flex;border:1px solid var(--line2);border-radius:4px;overflow:hidden}
+.langsw button{border:0;border-radius:0;padding:4px 9px;background:transparent;color:var(--mute);font-size:12px;font-weight:600}
+.langsw button.on{background:var(--acc);color:#1a1100}
+.betabox{border:1px solid #e5484d;background:#241415;border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.betabox h3{margin:0 0 6px;color:#ff8b8b;font-size:15px}
+.betabox ul{margin:6px 0 0 18px;padding:0}
+@media (max-width:1100px){.edwrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">ETS2 <b>TUNER</b></div>
+    <span class="badge beta" id="betaBadge">BETA</span><span class="badge" id="truckBadge">kein Fahrzeug</span>
+    <div class="sp"></div>
+    <div class="langsw" id="langSw"><button data-lang="de_de">DE</button><button data-lang="en_us">EN</button></div>
+    <button class="ghost" id="btnSetup" data-i="⚙ Einstellungen & Daten">⚙ Einstellungen &amp; Daten</button>
+    <button class="pri" id="btnExport" data-i="⇩ Mod exportieren">⇩ Mod exportieren</button>
+  </header>
+  <div class="main">
+    <aside>
+      <div class="sec">
+        <h4 data-i="Fahrzeug">Fahrzeug</h4>
+        <select id="selTruck"><option>– Daten laden –</option></select>
+      </div>
+      <div class="sec">
+        <div class="tabs"><button id="tabEng" class="on" data-i="Motoren">Motoren</button><button id="tabTrans" data-i="Getriebe / Achse">Getriebe / Achse</button></div>
+        <div class="clist" id="clist"></div>
+      </div>
+      <div class="sec">
+        <h4><span data-i="Version">Version</span> <span style="text-transform:none;letter-spacing:0;color:var(--dim)" data-i="Serie ist schreibgeschützt">Serie ist schreibgeschützt</span></h4>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="tree" id="tree"></div>
+    </aside>
+    <section class="work" id="work"></section>
+  </div>
+  <footer>
+    <span id="stLeft">…</span>
+    <div class="sp"></div>
+    <span id="stChanges">0 Versionen geändert</span>
+  </footer>
+</div>
+<div id="modalRoot"></div>
+
+<script>
+"use strict";
+/* =====================================================================================
+   Beschreibungen der Kennfelder / Werte
+   ===================================================================================== */
+const ENGINE_MAPS = [
+  {g:"Kennfelder", key:"torque_curve", type:"curve", label:"Drehmomentkennlinie", ic:"2D",
+   desc:`<p>Das Herzstück jedes Tunings. Die Kennlinie legt fest, wie viel Drehmoment der Motor bei jeder Drehzahl abgibt. Im Spiel sind das Faktoren (0–1) auf das maximale Drehmoment. Hier editierst du direkt in <b>Nm</b>, das Tool rechnet beim Export um.</p>
+   <p>Die <span style="color:var(--pow)">blaue Linie</span> zeigt die daraus resultierende Leistung in PS. Die Leistung ergibt sich immer aus Drehmoment × Drehzahl und kann nicht separat eingestellt werden.</p>
+   <div class="tip"><b>Typisches Tuning:</b> das Plateau (volles Drehmoment) breiter machen, z. B. bis 1.400 U/min, und die Punkte oberhalb leicht anheben. Das bringt mehr Durchzug am Berg und mehr Spitzenleistung.</div>
+   <p>Ziehen: Punkt vertikal verschieben. <b>Shift</b> gedrückt halten, um auch die Drehzahl zu verschieben. In der Tabelle kannst du mehrere Zellen (Shift/Strg-Klick) markieren und gemeinsam ändern.</p>`},
+  {g:"Kennfelder", key:"torque", type:"value", label:"Max. Drehmoment (Skalierung)", unit:"Nm", min:300, max:6000, step:10, int:true, ic:"Nm",
+   desc:`<p>Maximales Drehmoment des Motors. Alle Punkte der Kennlinie sind Faktoren auf diesen Wert, eine Änderung <b>skaliert daher die ganze Kurve</b> gleichmäßig.</p><div class="tip">Schnelles „Stage“-Tuning: Wert um 10–15 % anheben. Für eine gezielte Kurvenform lieber die Drehmomentkennlinie bearbeiten.</div>`},
+  {g:"Motor", key:"volume", type:"value", label:"Hubraum", unit:"l", min:1, max:25, step:0.1, ic:"L", def:12.8,
+   desc:`<p>Hubraum in Litern. Ändert <b>nicht</b> die Leistung, beeinflusst aber die Stärke der Motorbremse (größerer Hubraum = stärkere Bremswirkung).</p>`},
+  {g:"Drehzahlen", key:"rpm_limit", type:"value", label:"Drehzahlbegrenzer (Last)", unit:"U/min", min:1200, max:4000, step:50, int:true, ic:"⟂", def:2200,
+   desc:`<p>Höchstdrehzahl beim Fahren. Darüber nimmt die Motorsteuerung Gas weg.</p><div class="warn">Die Kennlinie sollte bis zum Begrenzer sinnvolle Werte haben. Fällt sie vorher auf 0, bringt ein höherer Begrenzer nichts.</div>`},
+  {g:"Drehzahlen", key:"rpm_limit_neutral", type:"value", label:"Begrenzer im Leerlauf (Neutral)", unit:"U/min", min:1000, max:4000, step:50, int:true, ic:"⟂", def:2200,
+   desc:`<p>Höchstdrehzahl, wenn kein Gang eingelegt ist (Gasstoß im Stand).</p>`},
+  {g:"Drehzahlen", key:"rpm_idle", type:"value", label:"Leerlaufdrehzahl", unit:"U/min", min:300, max:1200, step:10, int:true, ic:"○", def:550,
+   desc:`<p>Drehzahl, die der Motor ohne Gas hält.</p>`},
+  {g:"Drehzahlen", key:"rpm_range_power", type:"range", label:"Schaltbereich Leistung", ic:"↔", def:[1300,1900],
+   desc:`<p>Drehzahlbereich, den die Automatik bei <b>Vollgas / am Berg</b> nutzt. Höher = später hochschalten, mehr Leistung, mehr Verbrauch.</p><div class="tip">Nach einem Tuning sinnvoll: an das neue Leistungsmaximum anpassen (siehe PS-Spitze oben).</div>`},
+  {g:"Drehzahlen", key:"rpm_range_low_gear", type:"range", label:"Schaltbereich niedrige Gänge", ic:"↔", def:[700,1500],
+   desc:`<p>Drehzahlbereich, in dem die Automatik in den unteren Gängen normal schaltet (ohne Vollgas).</p>`},
+  {g:"Drehzahlen", key:"rpm_range_high_gear", type:"range", label:"Schaltbereich hohe Gänge", ic:"↔", def:[1000,1500],
+   desc:`<p>Drehzahlbereich, in dem die Automatik in den oberen Gängen schaltet, also im normalen Reisebetrieb. Niedriger = sparsamer.</p>`},
+  {g:"Motorbremse", key:"engine_brake", type:"value", label:"Motorbremse Stärke", unit:"×", min:0.2, max:5, step:0.1, ic:"⊖", def:1,
+   desc:`<p>Stärke der Motorbremse relativ zu einer normalen Auspuffklappenbremse gleichen Hubraums. <code>1.0</code> = Standard, <code>1.5</code> = 50 % stärker.</p><div class="tip">Real entspricht das einer stärkeren Dekompressionsbremse (z. B. Mercedes High Performance Engine Brake).</div>`},
+  {g:"Motorbremse", key:"engine_brake_positions", type:"value", label:"Motorbremse Stufen", unit:"Stufen", min:1, max:5, step:1, int:true, ic:"#", def:3,
+   desc:`<p>Anzahl der Schaltstufen der Motorbremse.</p>`},
+  {g:"Motorbremse", key:"engine_brake_downshift", type:"switch", label:"Zurückschalten beim Bremsen", ic:"0|1", on:true, off:false, def:true,
+   desc:`<p><b>1</b> = die Automatik schaltet beim Einsatz der Motorbremse herunter, um die Drehzahl und damit die Bremswirkung zu erhöhen.<br><b>0</b> = Gang bleibt drin.</p>`},
+  {g:"Motorbremse", key:"rpm_range_engine_brake", type:"range", label:"Drehzahlbereich Motorbremse", ic:"↔", def:[1500,2200],
+   desc:`<p>Zwischen welchen Drehzahlen die Automatik schaltet, während die Motorbremse arbeitet. Höher = stärkere Bremswirkung.</p>`},
+  {g:"AdBlue", key:"no_adblue_power_limit", type:"switch", label:"AdBlue-Notlauf deaktivieren", ic:"0|1", on:1.0, off:0.5, def:0.5, invertLabel:true,
+   desc:`<p><b>1</b> = Kein Leistungsverlust, wenn der AdBlue-Tank leer ist.<br><b>0</b> = Serie: Notlauf mit reduzierter Leistung.</p><p>Technisch setzt der Schalter <code>no_adblue_power_limit</code> auf 1.0 bzw. 0.5. Den genauen Prozentwert stellst du unter „AdBlue-Notlauf Leistung“ ein.</p>`},
+  {g:"AdBlue", key:"no_adblue_power_limit", id:"no_adblue_power_limit_v", type:"value", label:"AdBlue-Notlauf Leistung", unit:"%", min:0.1, max:1, step:0.05, pct:true, ic:"%", def:0.5,
+   desc:`<p>Verbleibende Leistung bei leerem AdBlue-Tank. 50 % = Serie, 100 % = kein Notlauf.</p>`},
+  {g:"AdBlue", key:"adblue_consumption", type:"value", label:"AdBlue-Verbrauch", unit:"", min:0, max:1, step:0.005, ic:"≈", def:null,
+   desc:`<p>Faktor für den AdBlue-Verbrauch. Ist der Wert nicht gesetzt, nutzt das Spiel seinen Standard. Den kennen wir nicht genau, daher lieber in kleinen Schritten testen.</p>`},
+  {g:"Experimentell (ab 1.61)", key:"engine_aspiration", type:"select", label:"Aufladung", ic:"T", options:[["natural","Sauger (natural)"],["turbocharger","Turbo (turbocharger)"]], def:null, raw:true,
+   desc:`<p>Neues Feld ab ETS2 1.61. Turbo verzögert das Erreichen der Kennlinie (Turboloch), Sauger spricht direkt an.</p><div class="warn">Die Werte stammen aus der Community-Dokumentation und sind nicht offiziell. Bei älteren Spielversionen kann das Spiel den Motor dann nicht laden. Nur setzen, wenn du 1.61 oder neuer hast.</div>`},
+  {g:"Experimentell (ab 1.61)", key:"flywheel_inertia", type:"value", label:"Schwungmasse", unit:"", min:0.1, max:5, step:0.1, ic:"◎", def:null,
+   desc:`<p>Trägheit der Schwungmasse. Kleiner = der Motor dreht schneller hoch und fällt schneller ab.</p><div class="warn">Nur ab ETS2 1.61. Bei älteren Versionen lieber nicht setzen.</div>`},
+  {g:"Experimentell (ab 1.61)", key:"cold_start_rpm", type:"value", label:"Kaltstart-Drehzahl", unit:"U/min", min:400, max:1500, step:10, int:true, ic:"❄", def:null,
+   desc:`<p>Erhöhte Leerlaufdrehzahl direkt nach dem Kaltstart. Nur ab ETS2 1.61.</p>`},
+  {g:"Experimentell (ab 1.61)", key:"rpm_limit_hysteresis", type:"value", label:"Begrenzer-Hysterese", unit:"U/min", min:0, max:300, step:5, int:true, ic:"~", def:null,
+   desc:`<p>Wie weit die Drehzahl nach dem Abregeln fallen muss, bevor wieder Gas freigegeben wird. Kleiner = härterer Begrenzer. Nur ab ETS2 1.61.</p>`},
+  {g:"Shop", adv:true, key:"name", type:"text", label:"Name im Menü", ic:"Aa",
+   desc:`<p>Name, unter dem das Bauteil in der Werkstatt angezeigt wird.</p><p>Lässt du das Feld unverändert, wird der Name <b>automatisch</b> gebildet: bei neuen Varianten Serienname + Versionsname (z. B. „OM 473 Euro VI 460 Stage 1“), beim Überschreiben bleibt der Serienname.</p><div class="tip">Der interne Bauteilname, den das Spiel zur Zuordnung braucht, wird beim Export automatisch vergeben und kann hier nicht verändert werden.</div>`},
+  {g:"Shop", adv:true, key:"price", type:"value", label:"Preis", unit:"€", min:0, max:500000, step:100, int:true, ic:"€",
+   desc:`<p>Kaufpreis des Bauteils. Beim Tausch erstattet das Spiel einen Teil des Preises vom alten Bauteil.</p>`},
+  {g:"Shop", adv:true, key:"unlock", type:"value", label:"Freischalt-Level", unit:"Level", min:0, max:50, step:1, int:true, ic:"★",
+   desc:`<p>Ab welchem Fahrerlevel das Bauteil kaufbar ist. Neue Varianten werden beim Export automatisch auf 0 gesetzt, wenn du hier nichts änderst.</p>`},
+];
+const TRANS_MAPS = [
+  {g:"Kennfelder", key:"ratios_forward", type:"gears", label:"Gangübersetzungen (vorwärts)", ic:"2D",
+   desc:`<p>Übersetzung jedes Gangs. Größere Zahl = kürzerer Gang (mehr Zugkraft, weniger Geschwindigkeit).</p>
+   <p>Die <span style="color:var(--pow)">blaue Linie</span> zeigt die Geschwindigkeit je Gang bei der eingestellten Drehzahl. Dabei werden die Achsübersetzung und der Reifenradius berücksichtigt.</p>
+   <div class="tip">Die Anzahl der Gänge bleibt bewusst gleich, weil Schaltschema und H-Schaltung daran hängen.</div>`},
+  {g:"Kennfelder", key:"ratios_reverse", type:"gears", label:"Rückwärtsgänge", ic:"2D", reverse:true,
+   desc:`<p>Übersetzungen der Rückwärtsgänge (im Spiel negativ gespeichert, hier als Betrag angezeigt).</p>`},
+  {g:"Achse", key:"differential_ratio", type:"value", label:"Achsübersetzung", unit:": 1", min:1.5, max:7, step:0.001, ic:"⚙",
+   desc:`<p>Übersetzung des Differentials (Hinterachse). Wirkt auf <b>alle Gänge</b> gleichzeitig.</p><p>Kleiner (z. B. 2,533) = lang: niedrige Drehzahl auf der Autobahn, sparsam, höhere Endgeschwindigkeit.<br>Größer (z. B. 3,077) = kurz: mehr Zugkraft am Berg, aber höhere Drehzahl.</p><div class="tip">Typische Werte beim Actros: 2,533 · 2,611 · 2,733 · 2,846 · 3,077 · 3,231</div>`},
+  {g:"Retarder", key:"retarder", type:"value", label:"Retarder-Stufen", unit:"Stufen", min:0, max:5, step:1, int:true, ic:"R", def:0,
+   desc:`<p>Anzahl der Retarder-Stufen. <b>0</b> = kein Retarder. Der Retarder ist eine verschleißfreie Dauerbremse im Getriebe.</p>`},
+  {g:"Shop", adv:true, key:"name", type:"text", label:"Name im Menü", ic:"Aa", desc:ENGINE_MAPS.find(m=>m.key==="name").desc},
+  {g:"Shop", adv:true, key:"price", type:"value", label:"Preis", unit:"€", min:0, max:500000, step:100, int:true, ic:"€", desc:ENGINE_MAPS.find(m=>m.key==="price").desc},
+  {g:"Shop", adv:true, key:"unlock", type:"value", label:"Freischalt-Level", unit:"Level", min:0, max:50, step:1, int:true, ic:"★", desc:ENGINE_MAPS.find(m=>m.key==="unlock").desc},
+];
+const mapId = m => m.id || m.key;
+const mL = m => (isEN() && EN_MAP[mapId(m)]) ? EN_MAP[mapId(m)].label : m.label;
+const mD = m => (isEN() && EN_MAP[mapId(m)]) ? EN_MAP[mapId(m)].desc : m.desc;
+const mU = m => T(m.unit||"");
+
+/* =====================================================================================
+   Zustand
+   ===================================================================================== */
+const S = {
+  cfg:null, status:null, trucks:[], truckId:"", truck:null, kind:"engine",
+  compKey:"", workId:"serie", mapKey:"torque_curve",
+  works:{}, settings:{advanced:false, wheel:0.512, rpmView:1400, autoInfo:true, modName:"ETS2 Tuning"},
+  closedGroups:{}, tsel:new Set(),
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const num = v => { if (typeof v==="number") return v; const n=parseFloat(String(v).replace(",", ".")); return isNaN(n)?null:n; };
+const fmt = (v, d=0) => v==null||isNaN(v) ? "–" : Number(v).toLocaleString(LOC(),{minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtAuto = v => { if (v==null) return "–"; const s=Math.abs(v)<10?3:Math.abs(v)<100?2:0; return Number(v).toLocaleString(LOC(),{maximumFractionDigits:s}); };
+
+/* =====================================================================================
+   Sprache / Language
+   ===================================================================================== */
+const LANG = () => (S.cfg && S.cfg.language==="en_us") ? "en" : "de";
+const isEN = () => LANG()==="en";
+const LOC = () => isEN() ? "en-GB" : "de-DE";
+function T(s, vars){
+  let out = (isEN() && EN[s]!==undefined) ? EN[s] : (DE[s]!==undefined ? DE[s] : s);
+  if (vars) out = out.replace(/\{(\w+)\}/g, (_,k)=> vars[k]!==undefined ? vars[k] : "{"+k+"}");
+  return out;
+}
+const DE = {
+  HINT_EXTRACTOR: `Empfohlen ist der kostenlose <b>Extractor von sk-zk</b> (<a href="https://github.com/sk-zk/Extractor/releases" target="_blank">github.com/sk-zk/Extractor/releases</a>, Datei <code>extractor.exe</code>). Er entpackt gezielt nur die Truckdaten und ist deshalb in wenigen Sekunden fertig. Leg die <code>extractor.exe</code> einfach in den Tool-Ordner, dann wird sie automatisch gefunden.<br>Der offizielle <code>scs_extractor.exe</code> von SCS funktioniert auch, entpackt aber komplette Archive und ist dadurch langsamer.`,
+  HINT_EXPORT: `<b>Neue Variante:</b> Das Original bleibt, dein getuntes Bauteil erscheint zusätzlich in der Werkstatt (z. B. „… Stage 1“).<br><b>Original überschreiben:</b> Das Serienbauteil wird verändert. Das gilt auch für schon gekaufte Trucks und KI-Fahrzeuge. Pro Bauteil darf nur eine Version überschreiben.`,
+  BAND_HINT: "Streckt (oder staucht) den oberen Teil der Drehmomentkurve auf eine neue Enddrehzahl, also die Drehzahl, bei der das Drehmoment auf 0 fällt. Unterhalb von „Strecken ab“ bleibt die Kurve unverändert, standardmäßig ab dem Ende des Drehmoment-Plateaus. Optional werden die Stützpunkte gleichmäßig neu verteilt und die Nm-Werte aus der gestreckten Kurve interpoliert. Höhere Enddrehzahl = mehr Leistung oben heraus, aber auch mehr Verbrauch und ein höherer Begrenzer.",
+  BETA_TITLE: "Frühe Beta-Version",
+  BETA_BODY: `<p>Der ETS2 Tuner befindet sich in einer <b>frühen Beta-Phase</b>. Funktionen können sich noch ändern, und es kann Fehler geben.</p>
+    <ul><li>Exportierte Mods vor dem Fahren kurz im Spiel prüfen (Werkstatt → Motor/Getriebe).</li>
+    <li>Vor größeren Änderungen am besten ein <b>Backup deines Profils</b> machen (Dokumente\\Euro Truck Simulator 2\\profiles).</li>
+    <li>Werte unter „Experimentell“ sind nicht offiziell dokumentiert.</li>
+    <li>Nur für den Singleplayer gedacht, in TruckersMP sind solche Mods nicht erlaubt.</li></ul>
+    <p style="margin-top:10px">Wenn ein Mod nicht lädt, hilft die Datei <code>game.log.txt</code> im Ordner Dokumente\\Euro Truck Simulator 2 bei der Fehlersuche.</p>`,
+  BETA_OK: "Verstanden",
+  BETA_HIDE: "Beim nächsten Start nicht mehr anzeigen",
+};
+const EN = {
+  HINT_EXTRACTOR: `Recommended: the free <b>Extractor by sk-zk</b> (<a href="https://github.com/sk-zk/Extractor/releases" target="_blank">github.com/sk-zk/Extractor/releases</a>, file <code>extractor.exe</code>). It extracts only the truck data and finishes in a few seconds. Just put <code>extractor.exe</code> into the tool folder and it will be found automatically.<br>The official <code>scs_extractor.exe</code> by SCS works too, but extracts complete archives and is therefore slower.`,
+  HINT_EXPORT: `<b>New variant:</b> the original stays, your tuned part appears additionally in the service shop (e.g. "… Stage 1").<br><b>Overwrite original:</b> the stock part itself is changed. This also affects trucks you already own and AI traffic. Only one version per part may overwrite.`,
+  BETA_TITLE: "Early beta version",
+  BETA_BODY: `<p>ETS2 Tuner is in an <b>early beta stage</b>. Features may still change and there may be bugs.</p>
+    <ul><li>Check exported mods in the game before driving (service shop → engine/transmission).</li>
+    <li>Before bigger changes, make a <b>backup of your profile</b> (Documents\\Euro Truck Simulator 2\\profiles).</li>
+    <li>Values under "Experimental" are not officially documented.</li>
+    <li>Intended for singleplayer only, such mods are not allowed on TruckersMP.</li></ul>
+    <p style="margin-top:10px">If a mod does not load, the file <code>game.log.txt</code> in Documents\\Euro Truck Simulator 2 helps to find the cause.</p>`,
+  BETA_OK: "Got it",
+  BETA_HIDE: "Don't show again on next start",
+  "⚙ Einstellungen & Daten":"⚙ Settings & data", "⇩ Mod exportieren":"⇩ Export mod", "Fahrzeug":"Truck", "Motoren":"Engines", "Getriebe / Achse":"Transmission / axle",
+  "Version":"Version", "Serie ist schreibgeschützt":"Stock is read-only", "kein Fahrzeug":"no truck",
+  "– keine Daten, bitte unter Einstellungen entpacken –":"– no data, please extract under settings –", "– Fahrzeug wählen –":"– select truck –", "Kein Fahrzeug gewählt":"No truck selected",
+  "Serie":"Stock", "Version löschen":"Delete version", "Neue Version aus Serie erstellen":"Create new version from stock", "+ Neue Version":"+ New version",
+  "Version „{l}“ löschen?":"Delete version \"{l}\"?", "Name der neuen Version:":"Name of the new version:",
+  "geändert":"modified", "Standard":"default",
+  "Kennfelder":"Maps", "Motor":"Engine", "Drehzahlen":"Engine speeds", "Motorbremse":"Engine brake", "AdBlue":"AdBlue", "Experimentell (ab 1.61)":"Experimental (1.61+)", "Shop":"Shop", "Achse":"Axle", "Retarder":"Retarder",
+  "Willkommen beim ETS2 Tuner":"Welcome to ETS2 Tuner", "Wähle links ein Fahrzeug.":"Select a truck on the left.",
+  "Zuerst unter <b>⚙ Einstellungen &amp; Daten</b> die Spieldaten entpacken.":"First extract the game data under <b>⚙ Settings &amp; data</b>.",
+  "Einstellungen öffnen":"Open settings", "Wähle links einen Motor aus.":"Select an engine on the left.", "Wähle links ein Getriebe aus.":"Select a transmission on the left.",
+  "Leistung":"Power", "PS":"hp", "Drehmoment":"Torque", "PS-Spitze bei":"Peak power at", "U/min":"rpm", "Begrenzer":"Limiter",
+  "Achsübersetzung":"Axle ratio", "Höchster Gang":"Top gear", "Gänge":"Gears", "Spreizung":"Ratio spread", "Stufen":"steps", "Level":"level",
+  "nicht gesetzt – Spiel-Standard":"not set – game default", "Du siehst die <b>Serienwerte</b> (schreibgeschützt).":"You are viewing the <b>stock values</b> (read-only).",
+  "+ Neue Version zum Bearbeiten":"+ New version to edit", "Was macht das?":"What does it do?", "Technischer Name":"Technical name",
+  "Markierte Zellen auf einen Wert setzen":"Set selected cells to a value", "= Wert":"= Value", "Markierte Zellen um X % ändern":"Change selected cells by X %",
+  "markiert":"selected", "alle Punkte":"all points", "Kennlinie":"Curve", "Stützpunkte":"points", "Punkt nach der Markierung einfügen":"Insert point after selection", "Punkt":"Point",
+  "Faktor %":"Factor %", "Bitte einen Punkt vor dem Einfügeort markieren":"Please select a point before the insert position", "Bitte Punkte markieren":"Please select points",
+  "Mindestens 3 Punkte nötig":"At least 3 points required", "Neuer Wert für die markierten Zellen:":"New value for the selected cells:",
+  "Änderung in % (z. B. 8 oder -3):":"Change in % (e.g. 8 or -3):", "Dieses Kennfeld auf Serie zurücksetzen?":"Reset this map to stock?",
+  "Dieses Getriebe hat keine Werte für":"This transmission has no values for", "Drehzahl":"Engine speed", "Reifenradius m":"Tyre radius m",
+  "Übersetzung":"Ratio", "Gang":"Gear", "Gangsprung %":"Gear step %",
+  "Einzelwert":"Single value", "Dieser Wert ist in der Originaldatei <b>nicht gesetzt</b>, das Spiel nutzt intern seinen Standardwert.":"This value is <b>not set</b> in the original file, the game uses its internal default.",
+  "Vorschlag als Startwert":"Suggested starting value", "Wert setzen":"Set value", "Startwert für":"Starting value for", "Entfernen (Spiel-Standard)":"Remove (game default)",
+  "nicht gesetzt":"not set", "Änderung":"Change", "Drehzahlbereich":"Speed range", "In der Originaldatei <b>nicht gesetzt</b>, das Spiel nutzt seinen Standard.":"<b>Not set</b> in the original file, the game uses its default.",
+  "Vorschlag":"Suggestion", "Bereich setzen":"Set range", "Entfernen":"Remove", "von":"from", "bis":"to", "grauer Balken = Serie":"grey bar = stock",
+  "Schalter":"Switch", "Aktiv":"Active", "Inaktiv":"Inactive", "nicht gesetzt → Spiel-Standard angenommen":"not set → game default assumed", "Wert in Datei":"Value in file",
+  "Anzeige":"Display", "Drehzahlband":"Speed band", "Drehzahlband strecken/stauchen und Stützpunkte neu verteilen":"Stretch/compress the speed band and redistribute points", "Drehzahlband anpassen":"Adjust speed band", "Neue Enddrehzahl":"New end speed", "bisher":"currently", "Strecken ab":"Stretch from", "darunter bleibt alles gleich":"everything below stays unchanged", "gleichmäßig verteilen – nur gestreckter Bereich":"distribute evenly – stretched part only", "gleichmäßig verteilen – gesamte Kurve":"distribute evenly – whole curve", "nicht neu verteilen (nur strecken)":"don't redistribute (stretch only)", "Anzahl":"Count", "Mitziehen":"Adjust as well", "Drehzahlbegrenzer (Last + Neutral)":"Rev limiter (load + neutral)", "Schaltbereiche (Leistung, Motorbremse)":"Shift ranges (power, engine brake)", "Abbrechen":"Cancel", "Übernehmen":"Apply", "Enddrehzahl muss deutlich über „Strecken ab“ liegen.":"End speed must be clearly above \"Stretch from\".", "Spitze bei":"peak at", "Drehzahlband angepasst":"Speed band adjusted",
+  BAND_HINT:"Stretches (or compresses) the upper part of the torque curve to a new end speed, i.e. the speed at which torque drops to 0. Below \"Stretch from\" the curve stays unchanged, by default the end of the torque plateau. Optionally the points are redistributed evenly and the Nm values interpolated from the stretched curve. Higher end speed = more power at the top, but also more fuel and a higher limiter.", "Anzeigename":"Display name", "Automatisch":"Automatic", "automatisch: Serienname + Versionsname":"automatic: stock name + version name", "automatisch: Serienname":"automatic: stock name", "Technische Details":"Technical details", "Interner Bauteilname":"Internal part name", "wird beim Export automatisch vergeben und ist nicht bearbeitbar.":"is assigned automatically on export and cannot be edited.", "Übersetzungsschlüssel im Original":"Translation key in original", "Sobald du den Namen änderst, wird er als fester Text gespeichert und im Spiel in jeder Sprache gleich angezeigt.":"Once you change the name, it is stored as fixed text and shown the same in every game language.", "Auswahl":"Selection", "Serie / nicht setzen":"Stock / don't set", "– nicht gesetzt (Spiel-Standard) –":"– not set (game default) –",
+  "Sauger (natural)":"Naturally aspirated (natural)", "Turbo (turbocharger)":"Turbo (turbocharger)",
+  "Lade":"Loading", "{e} Motoren, {t} Getriebe geladen":"{e} engines, {t} transmissions loaded",
+  "{n} Version mit Änderungen":"{n} version with changes", "{n} Versionen mit Änderungen":"{n} versions with changes",
+  "✔ gefunden":"✔ found", "✖ fehlt":"✖ missing", "Einstellungen &amp; Spieldaten":"Settings &amp; game data", "Spielordner":"Game folder", "Mod-Ordner":"Mod folder",
+  "Sprache":"Language", "Erweiterte Werte":"Advanced values", "Shop-Werte anzeigen (Preis, Freischaltlevel, Name)":"Show shop values (price, unlock level, name)",
+  "Spieldaten":"Game data", "Entpackt am <b>{t}</b> aus {n} Archiv(en). Nach einem Spiel-Update bitte neu entpacken.":"Extracted on <b>{t}</b> from {n} archive(s). Please extract again after a game update.",
+  "Noch keine Daten entpackt.":"No data extracted yet.", "Bereit.":"Ready.", "Klicke auf „Spieldaten entpacken“.":"Click \"Extract game data\".",
+  "Speichern":"Save", "Spieldaten entpacken":"Extract game data", "Gespeichert":"Saved", "Spielordner ungültig: def.scs nicht gefunden":"Invalid game folder: def.scs not found",
+  "Extractor nicht gefunden":"Extractor not found", "Spieldaten entpackt":"Game data extracted",
+  "Noch keine Änderungen. Wähle einen Motor/ein Getriebe und erstelle eine neue Version.":"No changes yet. Select an engine/transmission and create a new version.",
+  "Mod exportieren":"Export mod", "Mod-Name":"Mod name", "Bauteil":"Part", "Änderungen":"Changes", "Export als":"Export as", "Getriebe":"Transmission",
+  "Neue Variante (zusätzlich)":"New variant (additional)", "Original überschreiben":"Overwrite original",
+  "PS/Nm-Anzeige im Werkstattmenü automatisch anpassen":"Update hp/Nm display in the service menu automatically",
+  "Vorschau der Dateien":"Preview files", "Herunterladen":"Download", "In Mod-Ordner speichern":"Save to mod folder", "Verbindung zum Tool fehlgeschlagen":"Connection to the tool failed",
+};
+const EN_MAP = {
+  torque_curve:{label:"Torque curve", desc:`<p>The heart of every tune. The curve defines how much torque the engine delivers at each engine speed. In the game these are factors (0–1) of the maximum torque. Here you edit directly in <b>Nm</b>, the tool converts on export.</p>
+   <p>The <span style="color:var(--pow)">blue line</span> shows the resulting power in hp. Power is always torque × engine speed and cannot be set separately.</p>
+   <div class="tip"><b>Typical tune:</b> widen the plateau (full torque), e.g. up to 1,400 rpm, and raise the points above slightly. This gives more pulling power on hills and more peak power.</div>
+   <p>Drag: move a point vertically. Hold <b>Shift</b> to move the engine speed as well. In the table you can select several cells (Shift/Ctrl-click) and change them together.</p>`},
+  torque:{label:"Max. torque (scaling)", desc:`<p>Maximum engine torque. All curve points are factors of this value, so a change <b>scales the whole curve</b> evenly.</p><div class="tip">Quick "stage" tune: raise the value by 10–15 %. For a specific curve shape, edit the torque curve instead.</div>`},
+  volume:{label:"Displacement", desc:`<p>Displacement in litres. Does <b>not</b> change power, but affects engine brake strength (larger displacement = stronger braking).</p>`},
+  rpm_limit:{label:"Rev limiter (load)", desc:`<p>Maximum engine speed while driving. Above it, the engine management cuts throttle.</p><div class="warn">The curve should have sensible values up to the limiter. If it drops to 0 earlier, a higher limiter has no effect.</div>`},
+  rpm_limit_neutral:{label:"Rev limiter in neutral", desc:`<p>Maximum engine speed with no gear engaged (revving while stationary).</p>`},
+  rpm_idle:{label:"Idle speed", desc:`<p>Engine speed held without throttle.</p>`},
+  rpm_range_power:{label:"Shift range power", desc:`<p>Engine speed range used by the automatic at <b>full throttle / on hills</b>. Higher = later upshifts, more power, more fuel.</p><div class="tip">Useful after a tune: adjust to the new power peak (see peak power above).</div>`},
+  rpm_range_low_gear:{label:"Shift range low gears", desc:`<p>Engine speed range in which the automatic shifts normally in the lower gears (without full throttle).</p>`},
+  rpm_range_high_gear:{label:"Shift range high gears", desc:`<p>Engine speed range in which the automatic shifts in the upper gears, i.e. normal cruising. Lower = more economical.</p>`},
+  engine_brake:{label:"Engine brake strength", desc:`<p>Engine brake strength relative to a normal exhaust brake of the same displacement. <code>1.0</code> = default, <code>1.5</code> = 50 % stronger.</p><div class="tip">In real life this corresponds to a stronger decompression brake (e.g. Mercedes High Performance Engine Brake).</div>`},
+  engine_brake_positions:{label:"Engine brake stages", desc:`<p>Number of engine brake stages.</p>`},
+  engine_brake_downshift:{label:"Downshift when braking", desc:`<p><b>1</b> = the automatic downshifts when the engine brake is used, to raise engine speed and braking power.<br><b>0</b> = gear stays engaged.</p>`},
+  rpm_range_engine_brake:{label:"Engine brake speed range", desc:`<p>Between which engine speeds the automatic shifts while the engine brake is working. Higher = stronger braking.</p>`},
+  no_adblue_power_limit:{label:"Disable AdBlue limp mode", desc:`<p><b>1</b> = no power loss when the AdBlue tank is empty.<br><b>0</b> = stock: limp mode with reduced power.</p><p>Technically the switch sets <code>no_adblue_power_limit</code> to 1.0 or 0.5. The exact percentage can be set under "AdBlue limp mode power".</p>`},
+  no_adblue_power_limit_v:{label:"AdBlue limp mode power", desc:`<p>Remaining power with an empty AdBlue tank. 50 % = stock, 100 % = no limp mode.</p>`},
+  adblue_consumption:{label:"AdBlue consumption", desc:`<p>Factor for AdBlue consumption. If not set, the game uses its default. The exact default is unknown, so test in small steps.</p>`},
+  engine_aspiration:{label:"Aspiration", desc:`<p>New field since ETS2 1.61. Turbo delays reaching the curve (turbo lag), naturally aspirated responds directly.</p><div class="warn">The values come from community documentation and are not official. On older game versions the game may fail to load the engine. Only set this if you have 1.61 or newer.</div>`},
+  flywheel_inertia:{label:"Flywheel inertia", desc:`<p>Inertia of the flywheel. Smaller = the engine revs up and drops faster.</p><div class="warn">Only for ETS2 1.61+. Better not set on older versions.</div>`},
+  cold_start_rpm:{label:"Cold start speed", desc:`<p>Raised idle speed right after a cold start. Only ETS2 1.61+.</p>`},
+  rpm_limit_hysteresis:{label:"Limiter hysteresis", desc:`<p>How far the engine speed must drop after limiting before throttle is released again. Smaller = harder limiter. Only ETS2 1.61+.</p>`},
+  name:{label:"Name in menu", desc:`<p>Name shown for the part in the service shop.</p><p>If you leave the field unchanged, the name is built <b>automatically</b>: for new variants stock name + version name (e.g. "OM 473 Euro VI 460 Stage 1"), when overwriting the stock name is kept.</p><div class="tip">The internal part name the game uses for identification is assigned automatically on export and cannot be changed here.</div>`},
+  price:{label:"Price", desc:`<p>Purchase price of the part. When swapping, the game refunds part of the price of the old part.</p>`},
+  unlock:{label:"Unlock level", desc:`<p>Driver level from which the part can be bought. New variants are automatically set to 0 on export unless you change it here.</p>`},
+  ratios_forward:{label:"Gear ratios (forward)", desc:`<p>Ratio of each gear. Larger number = shorter gear (more tractive force, less speed).</p>
+   <p>The <span style="color:var(--pow)">blue line</span> shows the speed per gear at the selected engine speed. Axle ratio and tyre radius are taken into account.</p>
+   <div class="tip">The number of gears intentionally stays the same, because shift pattern and H-shifter depend on it.</div>`},
+  ratios_reverse:{label:"Reverse gears", desc:`<p>Ratios of the reverse gears (stored as negative values in the game, shown as absolute values here).</p>`},
+  differential_ratio:{label:"Axle ratio", desc:`<p>Differential ratio (rear axle). Affects <b>all gears</b> at once.</p><p>Smaller (e.g. 2.533) = long: low engine speed on the motorway, economical, higher top speed.<br>Larger (e.g. 3.077) = short: more pulling power on hills, but higher engine speed.</p><div class="tip">Typical Actros values: 2.533 · 2.611 · 2.733 · 2.846 · 3.077 · 3.231</div>`},
+  retarder:{label:"Retarder stages", desc:`<p>Number of retarder stages. <b>0</b> = no retarder. The retarder is a wear-free continuous brake in the transmission.</p>`},
+};
+function applyStatic(){
+  document.documentElement.lang = LANG();
+  document.querySelectorAll("[data-i]").forEach(el=>{ el.textContent = T(el.dataset.i); });
+  document.querySelectorAll("#langSw button").forEach(b=>b.classList.toggle("on", (b.dataset.lang==="en_us")===isEN()));
+}
+async function setLang(code){
+  const r=await api("/api/config",{method:"POST",body:JSON.stringify({language:code})});
+  S.cfg=r.config; S.status=r.status;
+  await loadTrucks(); await reloadTruck(); renderAll();
+}
+async function reloadTruck(){
+  if(!S.truckId) return;
+  try{ S.truck=await api("/api/truck?id="+encodeURIComponent(S.truckId)); }catch(e){}
+}
+function showBeta(next){
+  if(S.settings.betaHidden){ next&&next(); return; }
+  modal(`<span style="color:#ff8b8b">⚠ ${T("BETA_TITLE")}</span>`, `<div class="betabox"><h3>BETA</h3>${T("BETA_BODY")}</div>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="bHide"> ${T("BETA_HIDE")}</label>`,
+    `<div class="langsw" style="margin-right:auto"><button data-l="de_de" class="${isEN()?"":"on"}">DE</button><button data-l="en_us" class="${isEN()?"on":""}">EN</button></div><button class="pri" id="bOk">${T("BETA_OK")}</button>`);
+  document.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{ await setLang(b.dataset.l); showBeta(next); });
+  const done=async()=>{ if($("#bHide")&&$("#bHide").checked){ S.settings.betaHidden=true; clearTimeout(saveT); try{ await api("/api/project",{method:"POST", body:JSON.stringify({works:S.works, settings:S.settings})}); }catch(e){} } closeModal(); next&&next(); };
+  $("#bOk").onclick=done; $("#mClose").onclick=done;
+}
+
+async function api(path, opts={}) {
+  const r = await fetch(path, {headers:{"Content-Type":"application/json"}, ...opts});
+  const ct = r.headers.get("Content-Type")||"";
+  if (ct.includes("json")) { const j = await r.json(); if (!r.ok) throw new Error(j.error||r.statusText); return j; }
+  if (!r.ok) throw new Error(r.statusText);
+  return r;
+}
+function toast(msg, err=false){ const d=document.createElement("div"); d.className="toast"+(err?" err":""); d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(), err?6000:3000); }
+
+let saveT=null;
+function saveProject(){ clearTimeout(saveT); saveT=setTimeout(()=>api("/api/project",{method:"POST", body:JSON.stringify({works:S.works, settings:S.settings})}).catch(()=>{}), 400); updateFooter(); }
+
+/* =====================================================================================
+   Datenzugriff
+   ===================================================================================== */
+const comps = () => S.truck ? S.truck[S.kind] : [];
+const comp = () => { if (!S.truck) return null; return [...S.truck.engine, ...S.truck.transmission].find(c=>c.key===S.compKey)||null; };
+const work = () => S.workId==="serie" ? null : S.works[S.workId]||null;
+const maps = () => (S.kind==="engine"?ENGINE_MAPS:TRANS_MAPS).filter(m=>!m.adv||S.settings.advanced);
+const curMap = () => maps().find(m=>mapId(m)===S.mapKey) || maps()[0];
+function origVal(c,k){ return c ? c.values[k] : undefined; }
+function effVal(c,w,k){ if (w && Object.prototype.hasOwnProperty.call(w.changes,k)) return w.changes[k]; return origVal(c,k); }
+function setChange(k, v){
+  const w=work(), c=comp(); if(!w) return;
+  if (v===undefined || JSON.stringify(v)===JSON.stringify(origVal(c,k))) delete w.changes[k];
+  else w.changes[k]=v;
+  saveProject();
+}
+const isMod = (w,k) => !!w && Object.prototype.hasOwnProperty.call(w.changes,k);
+function prettyName(s){
+  if (!s) return "";
+  return String(s).replace(/@@([A-Za-z0-9_.]+)@@/g,(_,k)=>{
+    let t=k.replace(/^engine_|^trans(mission)?_/,"").replace(/_/g," ");
+    t=t.replace(/\beuro (vi|v|iv|iii)\b/i,(m)=>m.toUpperCase().replace("EURO","Euro")).replace(/\bom (\d+)/i,"OM $1");
+    return t.replace(/\b([a-z])/g,c=>c.toUpperCase());
+  });
+}
+function compName(c){ return prettyName(c.display||c.unit); }
+
+/* Motor-Berechnungen */
+function curveNm(c,w){ const t=num(effVal(c,w,"torque"))||0; return (effVal(c,w,"torque_curve")||[]).map(p=>[p[0], p[1]*t]); }
+const sameX=(a,b)=>a.length===b.length && a.every((p,i)=>Math.abs(p[0]-b[i][0])<1);
+function setCurveNm(pts){
+  const t=Math.round(Math.max(...pts.map(p=>p[1]))) || 1;
+  setChange("torque", t);
+  setChange("torque_curve", pts.map(p=>[Math.round(p[0]), Math.round(p[1]/t*10000)/10000]));
+}
+/* Drehzahlband anpassen: strecken ab Anker + optional gleichmaessig neu verteilen */
+function bandCalc(cur, o){
+  const pts=[...cur].sort((a,b)=>a[0]-b[0]);
+  const oldMax=pts[pts.length-1][0], a=Math.min(o.anchor, oldMax-10);
+  const f=(o.newMax-a)/(oldMax-a);
+  let st=pts.map(([r,v])=>[r<=a?r:a+(r-a)*f, v]);
+  const n=Math.max(o.mode==="all"?3:1, o.count|0);
+  if(o.mode==="upper"){
+    const keep=st.filter(p=>p[0]<=a).map(([r,v])=>[Math.round(r), Math.round(v)]);
+    const out=[]; for(let i=1;i<=n;i++){ const r=a+(o.newMax-a)*i/n; out.push([Math.round(r/10)*10, Math.round(interp(st,r))]); }
+    st=keep.concat(out);
+  } else if(o.mode==="all"){
+    const lo=st[0][0], out=[];
+    for(let i=0;i<n;i++){ const r=lo+(o.newMax-lo)*i/(n-1); out.push([Math.round(r/10)*10, Math.round(interp(st,r))]); }
+    const mx=Math.max(...pts.map(p=>p[1])), omx=Math.max(...out.map(p=>p[1]));
+    if(omx<mx){ const k=out.findIndex(p=>p[1]===omx); out[k][1]=Math.round(mx); }
+    st=out;
+  } else st=st.map(([r,v])=>[Math.round(r/10)*10, Math.round(v)]);
+  return {pts:st, oldMax, f, a};
+}
+function openBand(c){
+  const w=work(); if(!w) return;
+  const cur=curveNm(c,w).sort((a,b)=>a[0]-b[0]);
+  const oldMax=cur[cur.length-1][0];
+  const mx=Math.max(...cur.map(p=>p[1]));
+  const plat=cur.filter(p=>p[1]>=mx*0.995).map(p=>p[0]);
+  const lim=num(effVal(c,w,"rpm_limit"))||2200;
+  const o={newMax:oldMax+300, anchor:plat.length?Math.max(...plat):Math.round(oldMax*0.5), mode:"upper", count:0, adjLimit:true, adjRanges:true};
+  o.count=Math.max(2, cur.filter(p=>p[0]>o.anchor).length);
+  modal(T("Drehzahlband anpassen"), `
+    <div class="hint" style="margin-top:0">${T("BAND_HINT")}</div>
+    <div class="frow"><span>${T("Neue Enddrehzahl")}</span><input type="number" id="bdMax" value="${o.newMax}" step="50"><span style="color:var(--mute)">${T("bisher")} ${fmt(oldMax)} ${T("U/min")}</span></div>
+    <div class="frow"><span>${T("Strecken ab")}</span><input type="number" id="bdAnc" value="${o.anchor}" step="50"><span style="color:var(--mute)">${T("darunter bleibt alles gleich")}</span></div>
+    <div class="frow"><span>${T("Stützpunkte")}</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="bdMode"><option value="upper">${T("gleichmäßig verteilen – nur gestreckter Bereich")}</option><option value="all">${T("gleichmäßig verteilen – gesamte Kurve")}</option><option value="none">${T("nicht neu verteilen (nur strecken)")}</option></select><label style="display:flex;gap:6px;align-items:center">${T("Anzahl")} <input type="number" id="bdCnt" value="${o.count}" min="1" max="30" style="width:64px"></label></div><span></span></div>
+    <div class="frow"><span>${T("Mitziehen")}</span><div style="display:grid;gap:4px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="bdLim" checked> ${T("Drehzahlbegrenzer (Last + Neutral)")}</label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="bdRng" checked> ${T("Schaltbereiche (Leistung, Motorbremse)")}</label></div><span></span></div>
+    <svg class="chart" id="bdChart" style="height:260px"></svg>
+    <div class="cmp" id="bdInfo" style="margin-top:6px"></div>`,
+    `<button id="bdCancel">${T("Abbrechen")}</button><button class="pri" id="bdApply">${T("Übernehmen")}</button>`);
+  const read=()=>{ o.newMax=num($("#bdMax").value)||oldMax; o.anchor=num($("#bdAnc").value)||0; const md=$("#bdMode").value; if(md!==o.mode){ o.mode=md; $("#bdCnt").value = md==="all"?cur.length:Math.max(2,cur.filter(p=>p[0]>o.anchor).length); } o.count=Math.round(num($("#bdCnt").value)||cur.length); o.adjLimit=$("#bdLim").checked; o.adjRanges=$("#bdRng").checked; $("#bdCnt").disabled=o.mode==="none"; };
+  const pwr=(pts,lm)=>{ let b=0,br=0; for(let r=400;r<=lm;r+=10){ const p=interp(pts,r)*r/7023.5; if(p>b){b=p;br=r;} } return [b,br]; };
+  const prev=()=>{
+    if(!$("#bdMax")) return;
+    read();
+    if(o.newMax<=o.anchor+100){ $("#bdInfo").innerHTML=`<span class="dn">${T("Enddrehzahl muss deutlich über „Strecken ab“ liegen.")}</span>`; $("#bdApply").disabled=true; return; }
+    $("#bdApply").disabled=false;
+    const res=bandCalc(cur,o); const nl=o.adjLimit? Math.round((lim+(o.newMax-oldMax))/10)*10 : lim;
+    const [hp0,r0]=pwr(cur,lim), [hp1,r1]=pwr(res.pts,nl);
+    drawChart($("#bdChart"),{x:[0,Math.max(o.newMax,oldMax,nl)+200], yl:[0,Math.ceil(mx*1.12/250)*250], xlabel:T("U/min"), ylabel:"Nm",
+      vlines:[{x:nl,c:"#ff5d5d",t:T("Begrenzer")},{x:o.anchor,c:"#8b939e",t:T("Strecken ab")}],
+      series:[{pts:cur,c:"var(--orig)",w:1.5,dots:true},{pts:res.pts,c:"var(--acc)",w:2.5,dots:true}]});
+    $("#bdInfo").innerHTML=`<span>${T("Leistung")}: <b>${fmt(hp0)} → ${fmt(hp1)} ${T("PS")}</b> (${T("Spitze bei")} ${fmt(r1)} ${T("U/min")})</span><span>${T("Begrenzer")}: <b>${fmt(lim)} → ${fmt(nl)} ${T("U/min")}</b></span><span>${T("Stützpunkte")}: <b>${res.pts.length}</b></span>`;
+  };
+  ["bdMax","bdAnc","bdMode","bdCnt","bdLim","bdRng"].forEach(id=>{ $("#"+id).oninput=prev; $("#"+id).onchange=prev; });
+  $("#bdCancel").onclick=closeModal;
+  $("#bdApply").onclick=()=>{
+    read(); const res=bandCalc(cur,o); const d=o.newMax-oldMax;
+    S.tsel.clear(); setCurveNm(res.pts);
+    if(o.adjLimit){
+      setChange("rpm_limit", Math.round((lim+d)/10)*10);
+      const ln=num(effVal(c,w,"rpm_limit_neutral")); if(ln!=null) setChange("rpm_limit_neutral", Math.round((ln+d)/10)*10);
+    }
+    if(o.adjRanges){
+      const sc=v=> v<=res.a ? v : Math.round((res.a+(v-res.a)*res.f)/10)*10;
+      ["rpm_range_power","rpm_range_engine_brake"].forEach(k=>{ const v=effVal(c,w,k); if(Array.isArray(v)) setChange(k,[sc(v[0]),sc(v[1])]); });
+    }
+    closeModal(); renderAll(); toast(T("Drehzahlband angepasst"));
+  };
+  prev();
+}
+function interp(pts, r){ if(!pts.length) return 0; if(r<=pts[0][0]) return pts[0][1]; for(let i=0;i<pts.length-1;i++){const [a,fa]=pts[i],[b,fb]=pts[i+1]; if(r>=a&&r<=b) return b===a?fa:fa+(fb-fa)*(r-a)/(b-a);} return pts[pts.length-1][1]; }
+function engStats(c,w){
+  const pts=[...curveNm(c,w)].sort((a,b)=>a[0]-b[0]); const lim=num(effVal(c,w,"rpm_limit"))||2500;
+  let best=0, br=0; for(let r=400;r<=lim;r+=10){ const kw=interp(pts,r)*r/9549.3; if(kw>best){best=kw;br=r;} }
+  return {hp:best*1.35962, kw:best, rpm:br, nm:num(effVal(c,w,"torque"))||0};
+}
+function speedKmh(rpm, ratio, diff){ if(!ratio||!diff) return 0; return rpm/(Math.abs(ratio)*diff)*2*Math.PI*S.settings.wheel*60/1000; }
+
+/* =====================================================================================
+   Linke Seite
+   ===================================================================================== */
+function renderTrucks(){
+  const sel=$("#selTruck");
+  if (!S.trucks.length){ sel.innerHTML=`<option>${T("– keine Daten, bitte unter Einstellungen entpacken –")}</option>`; return; }
+  sel.innerHTML = `<option value="">${T("– Fahrzeug wählen –")}</option>` + S.trucks.map(t=>`<option value="${esc(t.id)}" ${t.id===S.truckId?"selected":""}>${esc(t.name)}</option>`).join("");
+}
+function compSub(c){
+  if (c.key.includes("|engine|")){ const s=engStats(c,null); return `${fmt(s.hp)} ${T("PS")} · ${fmt(s.nm)} Nm`; }
+  const g=(c.values.ratios_forward||[]).length; return `${g}G · i=${fmtAuto(c.values.differential_ratio)}`;
+}
+function renderCList(){
+  $("#tabEng").classList.toggle("on", S.kind==="engine"); $("#tabTrans").classList.toggle("on", S.kind==="transmission");
+  const list=comps();
+  $("#clist").innerHTML = list.length ? list.map(c=>{
+    const hasW = Object.values(S.works).some(w=>w.comp===c.key && Object.keys(w.changes).length);
+    return `<div class="citem ${c.key===S.compKey?"on":""}" data-k="${esc(c.key)}"><span class="n">${hasW?'<span class="dot">● </span>':""}${esc(compName(c))}</span><span class="s">${esc(compSub(c))}</span></div>`;
+  }).join("") : `<div style="padding:10px;color:var(--mute)">${T("Kein Fahrzeug gewählt")}</div>`;
+  $("#clist").querySelectorAll(".citem").forEach(el=>el.onclick=()=>selectComp(el.dataset.k));
+}
+function worksOf(key){ return Object.values(S.works).filter(w=>w.comp===key).sort((a,b)=>a.created-b.created); }
+function renderChips(){
+  const c=comp(); const el=$("#chips");
+  if(!c){ el.innerHTML=`<span style="color:var(--dim)">–</span>`; return; }
+  el.innerHTML = `<span class="chip serie ${S.workId==="serie"?"on":""}" data-w="serie">${T("Serie")}</span>` +
+    worksOf(c.key).map(w=>`<span class="chip ${S.workId===w.id?"on":""}" data-w="${w.id}">${esc(w.label)}${Object.keys(w.changes).length?" ●":""}<span class="x" data-del="${w.id}" title="${T("Version löschen")}">×</span></span>`).join("") +
+    `<span class="chip" data-new="1" title="${T("Neue Version aus Serie erstellen")}">${T("+ Neue Version")}</span>`;
+  el.querySelectorAll("[data-w]").forEach(x=>x.onclick=e=>{ if(e.target.dataset.del) return; S.workId=x.dataset.w; S.tsel.clear(); renderAll(); });
+  el.querySelectorAll("[data-del]").forEach(x=>x.onclick=e=>{ e.stopPropagation(); const w=S.works[x.dataset.del]; if(!confirm(T("Version „{l}“ löschen?",{l:w.label}))) return; delete S.works[x.dataset.del]; if(S.workId===x.dataset.del) S.workId="serie"; saveProject(); renderAll(); });
+  el.querySelector("[data-new]").onclick=()=>newWork();
+}
+function newWork(copyFrom){
+  const c=comp(); if(!c) return;
+  const n=worksOf(c.key).length+1;
+  const label = prompt(T("Name der neuen Version:"), "Stage "+n); if(!label) return;
+  const [truck,kind,unit]=c.key.split("|");
+  const id="w"+Date.now().toString(36);
+  S.works[id]={id, comp:c.key, truck, kind, unit, file:c.file, label:label.trim(), mode:"new", changes: copyFrom? clone(copyFrom.changes):{}, created:Date.now()};
+  S.workId=id; saveProject(); renderAll();
+}
+function renderTree(){
+  const c=comp(), w=work(); const el=$("#tree");
+  if(!c){ el.innerHTML=""; return; }
+  const groups={}; maps().forEach(m=>(groups[m.g]=groups[m.g]||[]).push(m));
+  el.innerHTML = Object.entries(groups).map(([g,ms])=>{
+    const closed=S.closedGroups[g];
+    return `<div class="tgrp ${closed?"closed":""}" data-g="${esc(g)}">${esc(T(g))}</div>` + (closed?"":ms.map(m=>{
+      const v=effVal(c,w,m.key); const unset = v===undefined;
+      return `<div class="titem ${mapId(m)===S.mapKey?"on":""}" data-m="${esc(mapId(m))}"><span class="ic">${m.ic||""}</span><span>${esc(mL(m))}</span>${isMod(w,m.key)?`<span class="mod" title="${T("geändert")}"></span>`:unset?`<span class="unset">${T("Standard")}</span>`:""}</div>`;
+    }).join(""));
+  }).join("");
+  el.querySelectorAll(".tgrp").forEach(x=>x.onclick=()=>{ S.closedGroups[x.dataset.g]=!S.closedGroups[x.dataset.g]; renderTree(); });
+  el.querySelectorAll(".titem").forEach(x=>x.onclick=()=>{ S.mapKey=x.dataset.m; S.tsel.clear(); renderTree(); renderWork(); });
+}
+
+/* =====================================================================================
+   Arbeitsbereich
+   ===================================================================================== */
+function renderWork(){
+  const el=$("#work"); const c=comp(), w=work();
+  if(!S.truck){ el.innerHTML=`<div class="empty"><h2>${T("Willkommen beim ETS2 Tuner")}</h2><p>${S.trucks.length?T("Wähle links ein Fahrzeug."):T("Zuerst unter <b>⚙ Einstellungen &amp; Daten</b> die Spieldaten entpacken.")}</p>${S.trucks.length?"":`<button class="pri" onclick="openSetup()">${T("Einstellungen öffnen")}</button>`}</div>`; return; }
+  if(!c){ el.innerHTML=`<div class="empty"><h2>${esc(S.truck.name)}</h2><p>${S.kind==="engine"?T("Wähle links einen Motor aus."):T("Wähle links ein Getriebe aus.")}</p></div>`; return; }
+  const m=curMap();
+  let kp="";
+  if (S.kind==="engine"){
+    const a=engStats(c,null), b=engStats(c,w);
+    kp = kpi(T("Leistung"), fmt(b.hp)+" "+T("PS"), w?delta(b.hp,a.hp," "+T("PS")):fmt(a.kw)+" kW") + kpi(T("Drehmoment"), fmt(b.nm)+" Nm", w?delta(b.nm,a.nm," Nm"):"") + kpi(T("PS-Spitze bei"), fmt(b.rpm)+" "+T("U/min"), w&&b.rpm!==a.rpm?`${T("Serie")} ${fmt(a.rpm)}`:"") + kpi(T("Begrenzer"), fmt(num(effVal(c,w,"rpm_limit"))||2200)+" "+T("U/min"),"");
+  } else {
+    const rf=effVal(c,w,"ratios_forward")||[], d=num(effVal(c,w,"differential_ratio"));
+    const of=origVal(c,"ratios_forward")||[], od=num(origVal(c,"differential_ratio"));
+    const top=rf.length?Math.min(...rf.map(Math.abs)):0, otop=of.length?Math.min(...of.map(Math.abs)):0;
+    const v=speedKmh(S.settings.rpmView, top, d), ov=speedKmh(S.settings.rpmView, otop, od);
+    kp = kpi(T("Achsübersetzung"), fmtAuto(d), w&&d!==od?`${T("Serie")} ${fmtAuto(od)}`:"") + kpi(`${T("Höchster Gang")} @ ${fmt(S.settings.rpmView)}`, fmt(v)+" km/h", w?delta(v,ov," km/h"):"") +
+         kpi(T("Gänge"), rf.length, "") + kpi(T("Spreizung"), fmtAuto(rf.length?Math.max(...rf.map(Math.abs))/top:0), "") + kpi("Retarder", (num(effVal(c,w,"retarder"))||0)+" "+T("Stufen"),"");
+  }
+  el.innerHTML = `
+    <div class="crumb">${esc(S.truck.name)} › ${esc(compName(c))} › <b>${w?esc(w.label):T("Serie")}</b></div>
+    <div class="title">${esc(mL(m))} ${isMod(w,m.key)?`<span class="badge acc">${T("geändert")}</span>`:""} ${effVal(c,w,m.key)===undefined?`<span class="badge">${T("nicht gesetzt – Spiel-Standard")}</span>`:""}</div>
+    <div class="kpis">${kp}</div>
+    ${w?"":`<div class="ro-note">${T("Du siehst die <b>Serienwerte</b> (schreibgeschützt).")}<span class="sp"></span><button class="pri" id="btnNewW">${T("+ Neue Version zum Bearbeiten")}</button></div>`}
+    <div class="edwrap"><div class="card" id="editor"></div><div class="card desc"><h5>${T("Was macht das?")}</h5>${mD(m)||""}<div style="font-size:11px;color:var(--dim);margin-top:8px">${T("Technischer Name")}: <code>${esc(m.key)}</code></div></div></div>`;
+  if(!w) $("#btnNewW").onclick=()=>newWork();
+  const ed=$("#editor");
+  ({curve:edCurve, gears:edGears, value:edValue, range:edRange, switch:edSwitch, text:edText, select:edSelect})[m.type](ed,c,w,m);
+}
+const kpi=(l,v,d)=>`<div class="kpi"><div class="l">${esc(l)}</div><div class="v">${v}</div><div class="d">${d||"&nbsp;"}</div></div>`;
+function delta(a,b,u){ const d=a-b; if(Math.abs(d)<0.5) return `<span style="color:var(--dim)">= ${T("Serie")}</span>`; const p=b?d/b*100:0; return `<span class="${d>0?"up":"dn"}">${d>0?"+":""}${fmt(d)}${u} (${d>0?"+":""}${fmt(p,1)} %)</span>`; }
+
+/* ---------- Diagramm (SVG) ---------- */
+function niceTicks(min,max,n=6){ const span=max-min||1; const step0=span/n; const mag=Math.pow(10,Math.floor(Math.log10(step0))); const f=step0/mag; const step=(f<1.5?1:f<3?2:f<7?5:10)*mag; const out=[]; for(let v=Math.ceil(min/step)*step; v<=max+1e-9; v+=step) out.push(+v.toFixed(6)); return out; }
+function drawChart(svg, o){
+  const W=svg.clientWidth||800, H=svg.clientHeight||380, L=62, R=o.yr?62:20, T=16, B=34;
+  const X=v=>L+(v-o.x[0])/(o.x[1]-o.x[0])*(W-L-R), Y=v=>T+(1-(v-o.yl[0])/(o.yl[1]-o.yl[0]))*(H-T-B), Y2=v=>o.yr?T+(1-(v-o.yr[0])/(o.yr[1]-o.yr[0]))*(H-T-B):0;
+  let s="";
+  niceTicks(o.yl[0],o.yl[1]).forEach(v=>{ s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end">${fmtAuto(v)}</text>`; });
+  if(o.yr) niceTicks(o.yr[0],o.yr[1]).forEach(v=>{ s+=`<text x="${W-R+8}" y="${Y2(v)+4}" style="fill:var(--pow)">${fmtAuto(v)}</text>`; });
+  (o.xticks||niceTicks(o.x[0],o.x[1],10)).forEach(v=>{ s+=`<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text x="${X(v)}" y="${H-B+16}" text-anchor="middle">${o.xfmt?o.xfmt(v):fmtAuto(v)}</text>`; });
+  s+=`<text x="${L}" y="${H-4}" style="fill:var(--dim)">${esc(o.xlabel||"")}</text><text x="6" y="${T-4}" style="fill:var(--dim)">${esc(o.ylabel||"")}</text>`;
+  if(o.yr) s+=`<text x="${W-6}" y="${T-4}" text-anchor="end" style="fill:var(--pow)">${esc(o.yrlabel||"")}</text>`;
+  if(o.vlines) o.vlines.forEach(vl=>{ s+=`<line x1="${X(vl.x)}" x2="${X(vl.x)}" y1="${T}" y2="${H-B}" stroke="${vl.c}" stroke-dasharray="4 4" opacity=".7"/><text x="${X(vl.x)+4}" y="${T+12}" style="fill:${vl.c}">${esc(vl.t)}</text>`; });
+  o.series.forEach(se=>{
+    const yf=se.axis==="r"?Y2:Y; if(!se.pts.length) return;
+    const d=se.pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+yf(p[1]).toFixed(1)).join(" ");
+    if(se.bars){ se.pts.forEach(p=>{ s+=`<rect x="${X(p[0])-14}" y="${yf(p[1])}" width="28" height="${H-B-yf(p[1])}" fill="${se.c}" opacity="${se.op||.25}"/>`; }); }
+    else s+=`<path d="${d}" fill="none" stroke="${se.c}" stroke-width="${se.w||2}" ${se.dash?`stroke-dasharray="${se.dash}"`:""}/>`;
+    if(se.edit) se.pts.forEach((p,i)=>{ s+=`<circle class="pt" data-i="${i}" cx="${X(p[0])}" cy="${yf(p[1])}" r="5.5" fill="${S.tsel.has(i)?"#fff":se.c}" stroke="#121417" stroke-width="2"/>`; });
+    else if(se.dots) se.pts.forEach(p=>{ s+=`<circle cx="${X(p[0])}" cy="${yf(p[1])}" r="3" fill="${se.c}"/>`; });
+  });
+  svg.innerHTML=s;
+  svg._inv={x:px=>o.x[0]+(px-L)/(W-L-R)*(o.x[1]-o.x[0]), y:py=>o.yl[0]+(1-(py-T)/(H-T-B))*(o.yl[1]-o.yl[0])};
+}
+function attachDrag(svg, onMove, onSel){
+  svg.onpointerdown=e=>{
+    const t=e.target; if(!t.classList.contains("pt")) return;
+    const i=+t.dataset.i; e.preventDefault();
+    if(e.ctrlKey||e.metaKey){ S.tsel.has(i)?S.tsel.delete(i):S.tsel.add(i); onSel(); return; }
+    if(!S.tsel.has(i)){ S.tsel.clear(); S.tsel.add(i); }
+    const inv=svg._inv, rect=svg.getBoundingClientRect(), y0=inv.y(e.clientY-rect.top);
+    const move=ev=>{ const r=svg.getBoundingClientRect(); onMove(i, inv.y(ev.clientY-r.top), inv.x(ev.clientX-r.left), ev.shiftKey, inv.y(ev.clientY-r.top)-y0); };
+    const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); onSel(true); };
+    window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+  };
+}
+
+/* ---------- Tabelle im WinOLS-Stil ---------- */
+function mapTable(rows, cols, ro){
+  // rows: [{label, vals:[...], orig:[...], edit:bool, fmt, onSet(i,v)}]
+  let h=`<table class="map"><tbody>`;
+  rows.forEach((r,ri)=>{
+    h+=`<tr ${r.sel?"":'data-nosel="1"'}><th>${esc(r.label)}</th>`;
+    for(let i=0;i<cols;i++){
+      const v=r.vals[i], o=r.orig?r.orig[i]:undefined;
+      const cls=[]; if(r.sel&&S.tsel.has(i)) cls.push("sel");
+      if(r.orig && o!==undefined && v!==undefined && r.fmt(v)!==r.fmt(o)) cls.push(v>o?"inc":"dec");
+      if(r.edit) h+=`<td class="${cls.join(" ")}" data-c="${i}"><input data-r="${ri}" data-c="${i}" value="${r.fmt(v)}" ${ro?"disabled":""}></td>`;
+      else h+=`<td class="ro ${cls.join(" ")}" data-c="${i}">${v===undefined?"":r.fmt(v)}</td>`;
+    }
+    h+=`</tr>`;
+  });
+  return h+`</tbody></table>`;
+}
+function bindTable(root, rows, rerender){
+  root.querySelectorAll("table.map input").forEach(inp=>{
+    inp.onmousedown=e=>{ const i=+inp.dataset.c; if(e.shiftKey && S.tsel.size){ const a=Math.min(...S.tsel), b=Math.max(...S.tsel); const lo=Math.min(a,i), hi=Math.max(b,i); for(let k=lo;k<=hi;k++) S.tsel.add(k); } else if(e.ctrlKey||e.metaKey){ S.tsel.has(i)?S.tsel.delete(i):S.tsel.add(i); } else { S.tsel.clear(); S.tsel.add(i); } markSel(root); };
+    inp.onchange=()=>{ const v=num(inp.value); if(v==null){ rerender(); return; } rows[+inp.dataset.r].onSet(+inp.dataset.c, v); rerender(); };
+    inp.onkeydown=e=>{ if(e.key==="Enter") inp.blur(); };
+  });
+  root.querySelectorAll("table.map td.ro").forEach(td=>td.onclick=()=>{ S.tsel.clear(); S.tsel.add(+td.dataset.c); markSel(root); });
+}
+function markSel(root){ root.querySelectorAll("tr").forEach(tr=>{ const ns=tr.dataset.nosel==="1"; tr.querySelectorAll("td[data-c]").forEach(td=>td.classList.toggle("sel", !ns && S.tsel.has(+td.dataset.c))); }); const ed=$("#editor"); if(ed&&ed._redrawChart) ed._redrawChart(); }
+
+function selIdx(n){ return S.tsel.size? [...S.tsel].filter(i=>i<n) : [...Array(n).keys()]; }
+function toolRow(ro, extra=""){ return `<div class="tools">
+  <button data-t="p1" ${ro?"disabled":""}>+1 %</button><button data-t="m1" ${ro?"disabled":""}>−1 %</button>
+  <button data-t="p5" ${ro?"disabled":""}>+5 %</button><button data-t="m5" ${ro?"disabled":""}>−5 %</button>
+  <button data-t="set" ${ro?"disabled":""} title="${T("Markierte Zellen auf einen Wert setzen")}">${T("= Wert")}</button>
+  <button data-t="pct" ${ro?"disabled":""} title="${T("Markierte Zellen um X % ändern")}">± X %</button>
+  <span class="sep"></span>${extra}
+  <button data-t="reset" class="ghost" ${ro?"disabled":""}>↺ ${T("Serie")}</button>
+  <span style="color:var(--dim);font-size:11px;margin-left:6px">${S.tsel.size? S.tsel.size+" "+T("markiert"):T("alle Punkte")}</span></div>`; }
+
+/* ---------- Editor: Drehmomentkurve ---------- */
+function edCurve(ed,c,w,m){
+  const ro=!w;
+  const orig=curveNm(c,null), cur=curveNm(c,w);
+  const n=cur.length;
+  const lim=num(effVal(c,w,"rpm_limit"))||2300;
+  const pwr=pts=>{ const out=[]; const srt=[...pts].sort((a,b)=>a[0]-b[0]); const mx=Math.max(lim, srt.length?srt[srt.length-1][0]:0); for(let r=Math.max(400,srt[0]?srt[0][0]:0); r<=mx; r+=25) out.push([r, interp(srt,r)*r/7023.5]); return out; };
+  const maxNm=Math.max(...orig.map(p=>p[1]),...cur.map(p=>p[1]))*1.12||1000;
+  const pc=pwr(cur), po=pwr(orig);
+  const maxPs=Math.max(...pc.map(p=>p[1]),...po.map(p=>p[1]))*1.15||600;
+  const xmax=Math.max(2600, lim+200, ...cur.map(p=>p[0]));
+  let domain={yl:[0,Math.ceil(maxNm/250)*250]};
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Kennlinie")} · ${n} ${T("Stützpunkte")}</span>
+    ${toolRow(ro, `<button data-t="ins" ${ro?"disabled":""} title="${T("Punkt nach der Markierung einfügen")}">+ ${T("Punkt")}</button><button data-t="del" ${ro?"disabled":""}>− ${T("Punkt")}</button><span class="sep"></span><button data-t="band" class="soft" ${ro?"disabled":""} title="${T("Drehzahlband strecken/stauchen und Stützpunkte neu verteilen")}">↔ ${T("Drehzahlband")}</button><span class="sep"></span>`)}</div>
+    <div class="bd" style="padding:6px 6px 0"><svg class="chart" id="chart"></svg>
+    <div style="display:flex;gap:16px;padding:4px 10px 8px;font-size:11px;color:var(--mute)"><span><b style="color:var(--acc)">━</b> ${T("Drehmoment")} (Nm)</span><span><b style="color:var(--pow)">┅</b> ${T("Leistung")} (${T("PS")})</span><span><b style="color:var(--orig)">━</b> ${T("Serie")}</span></div></div>
+    <div class="tblwrap" id="tbl"></div>`;
+  const svg=$("#chart");
+  const redraw=()=>{
+    const cc=curveNm(c,work()), pp=pwr(cc);
+    drawChart(svg,{x:[0,xmax], yl:domain.yl, yr:[0,Math.ceil(maxPs/100)*100], xlabel:T("U/min"), ylabel:"Nm", yrlabel:T("PS"),
+      vlines:[{x:lim,c:"#ff5d5d",t:T("Begrenzer")}],
+      series:[{pts:orig,c:"var(--orig)",w:1.5},{pts:po,c:"var(--orig)",axis:"r",dash:"3 4",w:1.2},{pts:pp,c:"var(--pow)",axis:"r",dash:"5 4"},{pts:cc,c:"var(--acc)",w:2.5,edit:true}]});
+  };
+  ed._redrawChart=redraw;
+  const setPts=setCurveNm;
+  const rerender=()=>{ renderWork(); renderTree(); renderCList(); renderChips(); };
+  const table=()=>{
+    const cc=curveNm(c,work());
+    const rows=[
+      {label:T("U/min"), vals:cc.map(p=>p[0]), orig:null, edit:true, sel:true, fmt:v=>Math.round(v), onSet:(i,v)=>{ const p=clone(cc); p[i][0]=Math.max(0,v); p.sort((a,b)=>a[0]-b[0]); setPts(p); }},
+      {label:"Nm", vals:cc.map(p=>p[1]), orig:sameX(orig,cc)?orig.map(p=>p[1]):null, edit:true, sel:true, fmt:v=>Math.round(v), onSet:(i,v)=>{ const p=clone(cc); p[i][1]=Math.max(0,v); setPts(p); }},
+      {label:T("Faktor %"), vals:cc.map(p=>p[1]/(Math.max(...cc.map(q=>q[1]))||1)*100), edit:false, sel:true, fmt:v=>fmt(v,1)},
+      {label:T("PS"), vals:cc.map(p=>p[1]*p[0]/7023.5), orig:sameX(orig,cc)?orig.map(p=>p[1]*p[0]/7023.5):null, edit:false, sel:true, fmt:v=>fmt(v)},
+    ];
+    $("#tbl").innerHTML=mapTable(rows, cc.length, ro);
+    if(!ro) bindTable($("#tbl"), rows, rerender);
+  };
+  redraw(); table();
+  if(!ro) attachDrag(svg,(i,y,x,shift)=>{
+    const cc=curveNm(c,work()); const idx=selIdx(cc.length); const dy=Math.max(0,y)-cc[i][1];
+    const p=clone(cc); idx.forEach(k=>{ p[k][1]=Math.max(0,p[k][1]+dy); });
+    if(shift && idx.length===1){ const lo=i>0?p[i-1][0]+10:0, hi=i<p.length-1?p[i+1][0]-10:5000; p[i][0]=Math.round(Math.min(hi,Math.max(lo,x))/10)*10; }
+    p.forEach(q=>q[1]=Math.round(q[1]));
+    setPts(p); redraw(); table();
+  }, (end)=>{ if(end) rerender(); else { redraw(); table(); } });
+  bindTools(ed, ro, n, (fnIdx)=>{ const cc=curveNm(c,work()); const p=clone(cc); fnIdx(p.map(q=>q[1]), (k,v)=>p[k][1]=Math.max(0,v)); setPts(p); rerender(); },
+    ()=>{ setChange("torque",undefined); setChange("torque_curve",undefined); rerender(); },
+    { band:()=>openBand(c),
+      ins:()=>{ const cc=curveNm(c,work()); const i=S.tsel.size?Math.max(...S.tsel):cc.length-2; if(i>=cc.length-1) return toast(T("Bitte einen Punkt vor dem Einfügeort markieren")); const a=cc[i], b=cc[i+1]; const p=clone(cc); p.splice(i+1,0,[Math.round((a[0]+b[0])/2), Math.round((a[1]+b[1])/2)]); S.tsel.clear(); S.tsel.add(i+1); setPts(p); rerender(); },
+      del:()=>{ const cc=curveNm(c,work()); if(!S.tsel.size) return toast(T("Bitte Punkte markieren")); if(cc.length-S.tsel.size<3) return toast(T("Mindestens 3 Punkte nötig"),true); const p=cc.filter((_,k)=>!S.tsel.has(k)); S.tsel.clear(); setPts(p); rerender(); } });
+}
+function bindTools(ed, ro, n, apply, reset, extra={}){
+  if(ro) return;
+  const scale=f=>apply((vals,set)=>selIdx(n).forEach(k=>set(k, vals[k]*f)));
+  ed.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{
+    const t=b.dataset.t;
+    if(t==="p1") scale(1.01); else if(t==="m1") scale(0.99); else if(t==="p5") scale(1.05); else if(t==="m5") scale(0.95);
+    else if(t==="set"){ const v=num(prompt(T("Neuer Wert für die markierten Zellen:"))); if(v!=null) apply((vals,set)=>selIdx(n).forEach(k=>set(k,v))); }
+    else if(t==="pct"){ const v=num(prompt(T("Änderung in % (z. B. 8 oder -3):"))); if(v!=null) scale(1+v/100); }
+    else if(t==="reset"){ if(confirm(T("Dieses Kennfeld auf Serie zurücksetzen?"))) reset(); }
+    else if(extra[t]) extra[t]();
+  });
+}
+
+/* ---------- Editor: Getriebe ---------- */
+function edGears(ed,c,w,m){
+  const ro=!w, rev=!!m.reverse;
+  const orig=(origVal(c,m.key)||[]).map(Math.abs), cur=(effVal(c,w,m.key)||[]).map(Math.abs);
+  const n=cur.length;
+  if(!n){ ed.innerHTML=`<div class="bd">${T("Dieses Getriebe hat keine Werte für")} <code>${m.key}</code>.</div>`; return; }
+  const diff=()=>num(effVal(c,work(),"differential_ratio"))||1;
+  const odiff=num(origVal(c,"differential_ratio"))||1;
+  ed.innerHTML=`<div class="hd"><span class="t">${n} ${T("Gänge")}</span>${toolRow(ro, `<label>${T("Drehzahl")} <input type="number" id="rpmv" value="${S.settings.rpmView}" step="50"></label><label>${T("Reifenradius m")} <input type="number" id="whl" value="${S.settings.wheel}" step="0.005"></label><span class="sep"></span>`)}</div>
+    <div class="bd" style="padding:6px 6px 0"><svg class="chart" id="chart"></svg>
+    <div style="display:flex;gap:16px;padding:4px 10px 8px;font-size:11px;color:var(--mute)"><span><b style="color:var(--acc)">●</b> ${T("Übersetzung")}</span><span><b style="color:var(--pow)">┅</b> km/h @ ${fmt(S.settings.rpmView)} ${T("U/min")}</span><span><b style="color:var(--orig)">━</b> ${T("Serie")}</span></div></div>
+    <div class="tblwrap" id="tbl"></div>`;
+  const maxR=Math.max(...orig,...cur)*1.15;
+  const domain={yl:[0, maxR]};
+  const svg=$("#chart");
+  const vmax=()=>Math.max(...cur.map(r=>speedKmh(S.settings.rpmView,r,diff())), ...orig.map(r=>speedKmh(S.settings.rpmView,r,odiff)))*1.15||100;
+  const redraw=()=>{
+    const cc=(effVal(c,work(),m.key)||[]).map(Math.abs);
+    drawChart(svg,{x:[0.4,n+0.6], xticks:[...Array(n).keys()].map(i=>i+1), xfmt:v=>(rev?"R":"")+v, yl:domain.yl, yr:[0,Math.ceil(vmax()/10)*10], xlabel:T("Gang"), ylabel:"i", yrlabel:"km/h",
+      series:[{pts:orig.map((r,i)=>[i+1,r]),c:"var(--orig)",bars:true,op:.18},{pts:orig.map((r,i)=>[i+1,speedKmh(S.settings.rpmView,r,odiff)]),c:"var(--orig)",axis:"r",dash:"3 4",w:1.2},
+        {pts:cc.map((r,i)=>[i+1,speedKmh(S.settings.rpmView,r,diff())]),c:"var(--pow)",axis:"r",dash:"5 4",dots:true},{pts:cc.map((r,i)=>[i+1,r]),c:"var(--acc)",w:2,edit:true}]});
+  };
+  ed._redrawChart=redraw;
+  const setR=arr=>setChange(m.key, arr.map(v=>(rev?-1:1)*Math.round(Math.max(0.05,v)*1000)/1000));
+  const rerender=()=>{ renderWork(); renderTree(); renderCList(); renderChips(); };
+  const table=()=>{
+    const cc=(effVal(c,work(),m.key)||[]).map(Math.abs);
+    const rows=[
+      {label:T("Gang"), vals:cc.map((_,i)=>i+1), edit:false, fmt:v=>(rev?"R":"")+v},
+      {label:T("Übersetzung"), vals:cc, orig, edit:true, sel:true, fmt:v=>fmtAuto(v), onSet:(i,v)=>{ const p=[...cc]; p[i]=Math.abs(v); setR(p); }},
+      {label:`km/h @${S.settings.rpmView}`, vals:cc.map(r=>speedKmh(S.settings.rpmView,r,diff())), orig:orig.map(r=>speedKmh(S.settings.rpmView,r,odiff)), edit:false, fmt:v=>fmt(v,1)},
+      {label:T("Gangsprung %"), vals:cc.map((r,i)=>i<cc.length-1?(r/cc[i+1]-1)*100:undefined), edit:false, fmt:v=>fmt(v,1)},
+    ];
+    $("#tbl").innerHTML=mapTable(rows,cc.length,ro);
+    if(!ro) bindTable($("#tbl"),rows,rerender);
+  };
+  redraw(); table();
+  $("#rpmv").onchange=e=>{ S.settings.rpmView=num(e.target.value)||1400; saveProject(); renderWork(); };
+  $("#whl").onchange=e=>{ S.settings.wheel=num(e.target.value)||0.512; saveProject(); renderWork(); };
+  if(!ro) attachDrag(svg,(i,y)=>{ const cc=(effVal(c,work(),m.key)||[]).map(Math.abs); const idx=selIdx(n); const f=Math.max(0.05,y)/cc[i]; const p=[...cc]; idx.forEach(k=>p[k]=k===i?Math.max(0.05,y):p[k]*f); setR(p); redraw(); table(); }, (end)=>{ if(end) rerender(); else { redraw(); table(); } });
+  bindTools(ed,ro,n,(fn)=>{ const cc=(effVal(c,work(),m.key)||[]).map(Math.abs); const p=[...cc]; fn(p,(k,v)=>p[k]=v); setR(p); rerender(); }, ()=>{ setChange(m.key,undefined); rerender(); });
+}
+
+/* ---------- Editor: Einzelwert ---------- */
+function edValue(ed,c,w,m){
+  const ro=!w; const ov=num(origVal(c,m.key)); let v=num(effVal(c,w,m.key));
+  const unset=effVal(c,w,m.key)===undefined;
+  const show=x=>x==null?"":m.pct?Math.round(x*100):m.int?Math.round(x):fmtAuto(x);
+  const toReal=x=>m.pct?x/100:x;
+  const rerender=()=>{ renderWork(); renderTree(); renderCList(); renderChips(); };
+  if(unset){
+    ed.innerHTML=`<div class="hd"><span class="t">${T("Einzelwert")}</span></div><div class="bd valbox"><p style="margin:0;color:var(--mute)">${T("Dieser Wert ist in der Originaldatei <b>nicht gesetzt</b>, das Spiel nutzt intern seinen Standardwert.")}${m.def!=null?` ${T("Vorschlag als Startwert")}: <b>${show(m.def)} ${esc(mU(m))}</b>`:""}</p>
+      ${ro?"":`<div><button class="pri" id="btnSet">${T("Wert setzen")}</button></div>`}</div>`;
+    if(!ro) $("#btnSet").onclick=()=>{ let d=m.def; if(d==null){ d=num(prompt(`${T("Startwert für")} ${mL(m)}${m.unit?" ("+mU(m)+")":""}:`)); if(d==null) return; d=toReal(d);} setChange(m.key, m.int?Math.round(d):d); rerender(); };
+    return;
+  }
+  const lo=Math.min(m.min, v??m.min, ov??m.min), hi=Math.max(m.max, v??0, ov??0);
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Einzelwert")}</span>${ro?"":`<button class="ghost" id="btnReset">↺ ${T("Serie")}</button>`}${!ro&&ov==null?`<button class="ghost" id="btnUnset">${T("Entfernen (Spiel-Standard)")}</button>`:""}</div>
+   <div class="bd valbox">
+    <div class="bignum"><button id="bm" ${ro?"disabled":""}>−</button><input type="text" id="vin" value="${show(v)}" ${ro?"disabled":""}><span class="u">${esc(mU(m))}</span><button id="bp" ${ro?"disabled":""}>+</button></div>
+    <input type="range" id="vrg" min="${m.pct?lo*100:lo}" max="${m.pct?hi*100:hi}" step="${m.pct?m.step*100:m.step}" value="${m.pct?v*100:v}" ${ro?"disabled":""}>
+    <div class="cmp"><span>${T("Serie")}: <b>${ov==null?T("nicht gesetzt"):show(ov)+" "+esc(mU(m))}</b></span>${ov!=null&&v!==ov?`<span>${T("Änderung")}: <b class="${v>ov?"up":"dn"}">${v>ov?"+":""}${fmt((v-ov)/ov*100,1)} %</b></span>`:""}</div>
+   </div>`;
+  if(ro) return;
+  const commit=x=>{ if(x==null) return; let r=toReal(x); if(m.int) r=Math.round(r); r=Math.round(r*10000)/10000; setChange(m.key, r); rerender(); };
+  $("#vin").onchange=e=>commit(num(e.target.value));
+  $("#vin").onkeydown=e=>{ if(e.key==="Enter") e.target.blur(); };
+  $("#vrg").oninput=e=>{ $("#vin").value=e.target.value; };
+  $("#vrg").onchange=e=>commit(num(e.target.value));
+  const st=m.pct?m.step*100:m.step;
+  $("#bm").onclick=()=>commit(num($("#vin").value)-st); $("#bp").onclick=()=>commit(num($("#vin").value)+st);
+  $("#btnReset").onclick=()=>{ setChange(m.key,undefined); rerender(); };
+  if($("#btnUnset")) $("#btnUnset").onclick=()=>{ setChange(m.key,undefined); rerender(); };
+}
+
+/* ---------- Editor: Bereich ---------- */
+function edRange(ed,c,w,m){
+  const ro=!w; const ov=origVal(c,m.key); const v=effVal(c,w,m.key);
+  const rerender=()=>{ renderWork(); renderTree(); renderChips(); };
+  if(v===undefined){
+    ed.innerHTML=`<div class="hd"><span class="t">${T("Drehzahlbereich")}</span></div><div class="bd valbox"><p style="margin:0;color:var(--mute)">${T("In der Originaldatei <b>nicht gesetzt</b>, das Spiel nutzt seinen Standard.")} ${T("Vorschlag")}: <b>${m.def[0]} – ${m.def[1]} ${T("U/min")}</b></p>${ro?"":`<div><button class="pri" id="btnSet">${T("Bereich setzen")}</button></div>`}</div>`;
+    if(!ro) $("#btnSet").onclick=()=>{ setChange(m.key,[...m.def]); rerender(); };
+    return;
+  }
+  const MAX=3000;
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Drehzahlbereich")}</span>${ro?"":`<button class="ghost" id="btnReset">↺ ${T("Serie")}</button>`}${!ro&&ov===undefined?`<button class="ghost" id="btnUnset">${T("Entfernen")}</button>`:""}</div>
+    <div class="bd valbox">
+      <div class="tools"><label>${T("von")} <input type="number" id="r0" value="${v[0]}" step="50" ${ro?"disabled":""}></label><label>${T("bis")} <input type="number" id="r1" value="${v[1]}" step="50" ${ro?"disabled":""}></label><span style="color:var(--mute)">${T("U/min")}</span></div>
+      <div class="rangebar" id="rb"><div class="track"></div>${ov?`<div class="ofill" style="left:${ov[0]/MAX*100}%;width:${(ov[1]-ov[0])/MAX*100}%" title="${T("Serie")}"></div>`:""}<div class="fill" style="left:${v[0]/MAX*100}%;width:${(v[1]-v[0])/MAX*100}%"></div>
+       ${ro?"":`<div class="h" data-h="0" style="left:${v[0]/MAX*100}%"></div><div class="h" data-h="1" style="left:${v[1]/MAX*100}%"></div>`}
+       ${[0,500,1000,1500,2000,2500,3000].map(t=>`<span class="tick" style="left:${t/MAX*100}%">${t}</span>`).join("")}</div>
+      <div class="cmp"><span>${T("Serie")}: <b>${ov?ov[0]+" – "+ov[1]+" "+T("U/min"):T("nicht gesetzt")}</b></span><span style="color:var(--dim)">${T("grauer Balken = Serie")}</span></div>
+    </div>`;
+  if(ro) return;
+  const commit=(a,b)=>{ a=Math.round(a/10)*10; b=Math.round(b/10)*10; if(a>b) [a,b]=[b,a]; setChange(m.key,[a,b]); rerender(); };
+  $("#r0").onchange=()=>commit(num($("#r0").value),num($("#r1").value));
+  $("#r1").onchange=()=>commit(num($("#r0").value),num($("#r1").value));
+  $("#btnReset").onclick=()=>{ setChange(m.key,undefined); rerender(); };
+  if($("#btnUnset")) $("#btnUnset").onclick=()=>{ setChange(m.key,undefined); rerender(); };
+  const rb=$("#rb");
+  rb.querySelectorAll(".h").forEach(h=>h.onpointerdown=e=>{
+    e.preventDefault(); const k=+h.dataset.h; const cur=[...v];
+    const mv=ev=>{ const r=rb.getBoundingClientRect(); cur[k]=Math.round(Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width))*MAX/50)*50; h.style.left=cur[k]/MAX*100+"%"; const f=rb.querySelector(".fill"); const a=Math.min(...cur), b=Math.max(...cur); f.style.left=a/MAX*100+"%"; f.style.width=(b-a)/MAX*100+"%"; $("#r0").value=a; $("#r1").value=b; };
+    const up=()=>{ window.removeEventListener("pointermove",mv); window.removeEventListener("pointerup",up); commit(cur[0],cur[1]); };
+    window.addEventListener("pointermove",mv); window.addEventListener("pointerup",up);
+  });
+}
+
+/* ---------- Editor: Schalter ---------- */
+function edSwitch(ed,c,w,m){
+  const ro=!w; const raw=effVal(c,w,m.key); const unset=raw===undefined;
+  const val = unset ? m.def : raw;
+  const isOn = (typeof m.on==="number") ? num(val)>=m.on-1e-6 : (val===true||val===1||val==="true");
+  const ov=origVal(c,m.key);
+  const oOn = ov===undefined? null : (typeof m.on==="number"? num(ov)>=m.on-1e-6 : (ov===true||ov===1||ov==="true"));
+  const rerender=()=>{ renderWork(); renderTree(); renderChips(); };
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Schalter")}</span>${ro?"":`<button class="ghost" id="btnReset">↺ ${T("Serie")}</button>`}</div>
+   <div class="bd valbox"><div class="sw ${ro?"dis":""}"><div class="tg" id="tg"><span class="${!isOn?"on0":""}">0</span><span class="${isOn?"on1":""}">1</span></div>
+   <div><div style="font-size:15px;font-weight:600">${isOn?T("Aktiv"):T("Inaktiv")}</div><div style="color:var(--mute);font-size:12px">${unset?T("nicht gesetzt → Spiel-Standard angenommen"):T("Wert in Datei")+": <code>"+esc(String(raw))+"</code>"}</div></div></div>
+   <div class="cmp"><span>${T("Serie")}: <b>${oOn===null?T("nicht gesetzt"):(oOn?"1":"0")}</b></span></div></div>`;
+  if(ro) return;
+  $("#tg").onclick=()=>{ setChange(m.key, isOn? m.off : m.on); rerender(); };
+  $("#btnReset").onclick=()=>{ setChange(m.key,undefined); rerender(); };
+}
+function edText(ed,c,w,m){
+  const ro=!w;
+  const stockShow = prettyName(c.display || origVal(c,"name") || c.unit);          // lesbarer Serienname
+  const auto = !isMod(w,m.key);
+  const preview = auto ? (w && w.mode==="new" ? stockShow+" "+w.label : stockShow) : String(w.changes[m.key]);
+  const key = String(origVal(c,"name")||"");
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Anzeigename")}</span>${ro||auto?"":`<button class="ghost" id="btnReset">↺ ${T("Automatisch")}</button>`}</div>
+   <div class="bd valbox">
+    <input type="text" id="tin" value="${esc(preview)}" ${ro?"disabled":""} style="font-size:16px;width:100%" maxlength="60">
+    <div class="cmp"><span>${T("Serie")}: <b>${esc(stockShow)}</b></span>${auto&&w?`<span style="color:var(--dim)">${w.mode==="new"?T("automatisch: Serienname + Versionsname"):T("automatisch: Serienname")}</span>`:""}</div>
+    <details style="font-size:12px;color:var(--mute)"><summary style="cursor:pointer">${T("Technische Details")}</summary>
+     <div style="margin-top:6px;line-height:1.7">${T("Interner Bauteilname")}: <code>${esc(c.unit)}</code> – ${T("wird beim Export automatisch vergeben und ist nicht bearbeitbar.")}<br>
+     ${/@@/.test(key)?`${T("Übersetzungsschlüssel im Original")}: <code>${esc(key)}</code><br>`:""}
+     ${T("Sobald du den Namen änderst, wird er als fester Text gespeichert und im Spiel in jeder Sprache gleich angezeigt.")}</div></details>
+   </div>`;
+  if(ro) return;
+  $("#tin").onchange=e=>{ const v=e.target.value.trim(); setChange(m.key, (!v || v===preview && auto) ? undefined : v); renderWork(); renderTree(); };
+  $("#tin").onkeydown=e=>{ if(e.key==="Enter") e.target.blur(); };
+  if($("#btnReset")) $("#btnReset").onclick=()=>{ setChange(m.key,undefined); renderWork(); renderTree(); };
+}
+function edSelect(ed,c,w,m){
+  const ro=!w; let v=effVal(c,w,m.key); if(typeof v==="string") v=v.replace(/^RAW:/,"");
+  ed.innerHTML=`<div class="hd"><span class="t">${T("Auswahl")}</span>${ro?"":`<button class="ghost" id="btnReset">↺ ${T("Serie / nicht setzen")}</button>`}</div><div class="bd valbox"><select id="sel" ${ro?"disabled":""} style="font-size:15px"><option value="">${T("– nicht gesetzt (Spiel-Standard) –")}</option>${m.options.map(o=>`<option value="${o[0]}" ${v===o[0]?"selected":""}>${esc(T(o[1]))}</option>`).join("")}</select></div>`;
+  if(ro) return;
+  $("#sel").onchange=e=>{ setChange(m.key, e.target.value? (m.raw?"RAW:":"")+e.target.value : undefined); renderWork(); renderTree(); };
+  $("#btnReset").onclick=()=>{ setChange(m.key,undefined); renderWork(); renderTree(); };
+}
+
+/* =====================================================================================
+   Auswahl / Laden
+   ===================================================================================== */
+async function selectTruck(id){
+  S.truckId=id; S.truck=null; S.compKey=""; S.workId="serie"; renderAll();
+  if(!id) return;
+  $("#stLeft").textContent=T("Lade")+" "+id+" …";
+  try{ S.truck=await api("/api/truck?id="+encodeURIComponent(id)); $("#stLeft").textContent=T("{e} Motoren, {t} Getriebe geladen",{e:S.truck.engine.length,t:S.truck.transmission.length}); }
+  catch(e){ toast(e.message,true); }
+  const first=comps()[comps().length-1]; if(first) selectComp(first.key); else renderAll();
+}
+function selectComp(key){
+  S.compKey=key; S.tsel.clear();
+  const ws=worksOf(key); S.workId= ws.length? ws[ws.length-1].id : "serie";
+  if(!maps().some(m=>mapId(m)===S.mapKey)) S.mapKey=mapId(maps()[0]);
+  renderAll();
+}
+function renderAll(){ applyStatic(); $("#truckBadge").textContent=S.truck?S.truck.name:T("kein Fahrzeug"); renderTrucks(); renderCList(); renderChips(); renderTree(); renderWork(); updateFooter(); }
+function updateFooter(){ const n=Object.values(S.works).filter(w=>Object.keys(w.changes).length).length; $("#stChanges").textContent=T(n===1?"{n} Version mit Änderungen":"{n} Versionen mit Änderungen",{n}); }
+
+$("#selTruck").onchange=e=>selectTruck(e.target.value);
+$("#tabEng").onclick=()=>{ S.kind="engine"; S.compKey=""; S.mapKey="torque_curve"; const l=comps(); if(l.length) selectComp(l[l.length-1].key); else renderAll(); };
+$("#tabTrans").onclick=()=>{ S.kind="transmission"; S.compKey=""; S.mapKey="ratios_forward"; const l=comps(); if(l.length) selectComp(l[0].key); else renderAll(); };
+$("#btnSetup").onclick=()=>openSetup();
+document.querySelectorAll("#langSw button").forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+$("#btnExport").onclick=()=>openExport();
+window.addEventListener("resize",()=>{ const ed=$("#editor"); if(ed&&ed._redrawChart) ed._redrawChart(); });
+
+/* =====================================================================================
+   Einstellungen & Extraktion
+   ===================================================================================== */
+function modal(title, body, foot){
+  $("#modalRoot").innerHTML=`<div class="modal-bg"><div class="modal"><div class="mh">${title}<span class="sp"></span><button class="ghost" id="mClose">✕</button></div><div class="mb">${body}</div><div class="mf">${foot||""}</div></div></div>`;
+  $("#mClose").onclick=closeModal;
+}
+function closeModal(){ $("#modalRoot").innerHTML=""; if(pollT){clearInterval(pollT);pollT=null;} }
+let pollT=null;
+async function openSetup(){
+  const j=await api("/api/config"); S.cfg=j.config; S.status=j.status;
+  const st=j.status, ok=b=>`<span class="st" style="color:${b?"var(--ok)":"var(--bad)"}">${b?T("✔ gefunden"):T("✖ fehlt")}</span>`;
+  const ci=st.cache_info||{};
+  modal(T("Einstellungen &amp; Spieldaten"), `
+    <div class="frow"><span>${T("Spielordner")}</span><input type="text" id="cGame" value="${esc(S.cfg.game_dir)}"><span><span id="stGame">${ok(st.game_ok)}</span> <button data-b="dir" data-f="cGame">…</button></span></div>
+    <div class="frow"><span>Extractor</span><input type="text" id="cExt" value="${esc(S.cfg.extractor)}"><span><span id="stExt">${ok(st.extractor_ok)}</span> <button data-b="file" data-f="cExt">…</button></span></div>
+    <div class="hint">${T("HINT_EXTRACTOR")}</div>
+    <div class="frow"><span>${T("Mod-Ordner")}</span><input type="text" id="cMod" value="${esc(S.cfg.mod_dir)}"><span><span id="stMod">${ok(st.mod_dir_ok)}</span> <button data-b="dir" data-f="cMod">…</button></span></div>
+    <div class="frow"><span>${T("Sprache")}</span><select id="cLang"><option value="de_de" ${S.cfg.language!=="en_us"?"selected":""}>Deutsch</option><option value="en_us" ${S.cfg.language==="en_us"?"selected":""}>English</option></select><span></span></div>
+    <div class="frow"><span>${T("Erweiterte Werte")}</span><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cAdv" ${S.settings.advanced?"checked":""}> ${T("Shop-Werte anzeigen (Preis, Freischaltlevel, Name)")}</label><span></span></div>
+    <h4 style="margin:16px 0 6px">${T("Spieldaten")}</h4>
+    <div class="hint">${st.cache_ok?T("Entpackt am <b>{t}</b> aus {n} Archiv(en). Nach einem Spiel-Update bitte neu entpacken.",{t:esc(ci.time||"?"),n:(ci.archives||[]).length}):T("Noch keine Daten entpackt.")}</div>
+    <div class="prog"><div id="pbar"></div></div>
+    <div class="log" id="xlog">${st.cache_ok?T("Bereit."):T("Klicke auf „Spieldaten entpacken“.")}</div>`,
+    `<button id="cSave">${T("Speichern")}</button><button class="pri" id="cExtract">${T("Spieldaten entpacken")}</button>`);
+  const refreshSt=st2=>{ if(!$("#stGame")) return; $("#stGame").innerHTML=ok(st2.game_ok); $("#stExt").innerHTML=ok(st2.extractor_ok); $("#stMod").innerHTML=ok(st2.mod_dir_ok); };
+  document.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ const r=await api(`/api/browse?kind=${b.dataset.b}&initial=${encodeURIComponent($("#"+b.dataset.f).value)}`); if(r.path){ $("#"+b.dataset.f).value=r.path; const r2=await save(); refreshSt(r2.status); } } finally{ b.disabled=false; } });
+  ["cGame","cExt","cMod"].forEach(id=>$("#"+id).onchange=async()=>{ const r2=await save(); refreshSt(r2.status); });
+  const save=async()=>{ S.settings.advanced=$("#cAdv").checked; saveProject(); const r=await api("/api/config",{method:"POST",body:JSON.stringify({game_dir:$("#cGame").value.trim(), extractor:$("#cExt").value.trim(), mod_dir:$("#cMod").value.trim(), language:$("#cLang").value})}); S.cfg=r.config; S.status=r.status; await reloadTruck(); return r; };
+  $("#cSave").onclick=async()=>{ await save(); toast(T("Gespeichert")); closeModal(); await loadTrucks(); renderAll(); };
+  $("#cExtract").onclick=async()=>{
+    const r=await save();
+    if(!r.status.game_ok) return toast(T("Spielordner ungültig: def.scs nicht gefunden"),true);
+    if(!r.status.extractor_ok) return toast(T("Extractor nicht gefunden"),true);
+    try{ await api("/api/extract",{method:"POST",body:"{}"}); }catch(e){ return toast(e.message,true); }
+    $("#cExtract").disabled=true;
+    pollT=setInterval(async()=>{
+      const s=await api("/api/extract/status");
+      $("#xlog").textContent=s.log.join("\n"); $("#xlog").scrollTop=1e9;
+      $("#pbar").style.width=(s.total?s.done/s.total*100:5)+"%";
+      if(s.finished){ clearInterval(pollT); pollT=null; $("#cExtract").disabled=false; if(s.error) toast(s.error,true); else { toast(T("Spieldaten entpackt")); await loadTrucks(); renderAll(); } }
+    }, 700);
+  };
+}
+async function loadTrucks(){ try{ S.trucks=(await api("/api/trucks")).trucks; }catch(e){ S.trucks=[]; } }
+
+/* =====================================================================================
+   Export
+   ===================================================================================== */
+function exportItems(){
+  return Object.values(S.works).filter(w=>Object.keys(w.changes).length).map(w=>({truck:w.truck, kind:w.kind, unit:w.unit, file:w.file, mode:w.mode, label:w.label, changes:clone(w.changes), auto_info:S.settings.autoInfo}));
+}
+function openExport(){
+  const ws=Object.values(S.works).filter(w=>Object.keys(w.changes).length);
+  if(!ws.length) return toast(T("Noch keine Änderungen. Wähle einen Motor/ein Getriebe und erstelle eine neue Version."), true);
+  modal(T("Mod exportieren"), `
+    <div class="frow"><span>${T("Mod-Name")}</span><input type="text" id="eName" value="${esc(S.settings.modName)}"><span></span></div>
+    <table class="ex"><thead><tr><th>${T("Fahrzeug")}</th><th>${T("Bauteil")}</th><th>Version</th><th>${T("Änderungen")}</th><th>${T("Export als")}</th></tr></thead><tbody>
+    ${ws.map(w=>`<tr><td>${esc(w.truck)}</td><td>${w.kind==="engine"?T("Motor"):T("Getriebe")} <span style="color:var(--mute)">${esc(w.unit.split(".")[0])}</span></td>
+      <td><input type="text" data-l="${w.id}" value="${esc(w.label)}"></td><td>${Object.keys(w.changes).length}</td>
+      <td><select data-m="${w.id}"><option value="new" ${w.mode==="new"?"selected":""}>${T("Neue Variante (zusätzlich)")}</option><option value="overwrite" ${w.mode==="overwrite"?"selected":""}>${T("Original überschreiben")}</option></select></td></tr>`).join("")}
+    </tbody></table>
+    <div class="hint" style="margin-top:12px">${T("HINT_EXPORT")}</div>
+    <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="eInfo" ${S.settings.autoInfo?"checked":""}> ${T("PS/Nm-Anzeige im Werkstattmenü automatisch anpassen")}</label>
+    <div id="ePrev"></div>`,
+    `<button id="eShow">${T("Vorschau der Dateien")}</button><button id="eDl">${T("Herunterladen")}</button><button class="pri" id="eMod">${T("In Mod-Ordner speichern")}</button>`);
+  document.querySelectorAll("[data-l]").forEach(i=>i.onchange=()=>{ S.works[i.dataset.l].label=i.value.trim()||"Tuning"; saveProject(); renderChips(); });
+  document.querySelectorAll("[data-m]").forEach(i=>i.onchange=()=>{ S.works[i.dataset.m].mode=i.value; saveProject(); });
+  const payload=target=>{ S.settings.modName=$("#eName").value.trim()||"ETS2 Tuning"; S.settings.autoInfo=$("#eInfo").checked; saveProject(); return JSON.stringify({mod_name:S.settings.modName, target, items:exportItems(), lang:LANG()}); };
+  $("#eShow").onclick=async()=>{ try{ const r=await api("/api/export",{method:"POST",body:payload("preview")}); $("#ePrev").innerHTML=Object.entries(r.files).map(([p,t])=>`<div style="margin:10px 0 4px;font-family:var(--mono);font-size:12px;color:var(--acc2)">${esc(p)}</div><pre class="prev">${esc(t)}</pre>`).join(""); }catch(e){ toast(e.message,true); } };
+  $("#eMod").onclick=async()=>{ try{ const r=await api("/api/export",{method:"POST",body:payload("moddir")}); toast(T("Gespeichert")+": "+r.path); closeModal(); }catch(e){ toast(e.message,true); } };
+  $("#eDl").onclick=async()=>{ try{ const r=await fetch("/api/export",{method:"POST",headers:{"Content-Type":"application/json"},body:payload("download")}); if(!r.ok){ const j=await r.json(); throw new Error(j.error); } const b=await r.blob(); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=(S.settings.modName.replace(/[^A-Za-z0-9_-]+/g,"_").toLowerCase()||"ets2_tuning")+".scs"; a.click(); }catch(e){ toast(e.message,true); } };
+}
+
+/* =====================================================================================
+   Start
+   ===================================================================================== */
+(async function init(){
+  try{
+    const p=await api("/api/project"); if(p.works) S.works=p.works; if(p.settings) Object.assign(S.settings,p.settings);
+    const j=await api("/api/config"); S.cfg=j.config; S.status=j.status;
+    await loadTrucks(); renderAll();
+    showBeta(()=>{ if(!j.status.cache_ok) openSetup(); });
+  }catch(e){ toast(T("Verbindung zum Tool fehlgeschlagen")+": "+e.message,true); }
+})();
+</script>
+</body>
+</html>

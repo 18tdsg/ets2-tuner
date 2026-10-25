@@ -1,0 +1,20 @@
+# Entpackte Spieldaten / extracted game data
+cache/
+
+# Persoenliche Einstellungen und Projekte / personal settings and projects
+config.json
+config.json.tmp
+projekt.json
+projekt.json.tmp
+
+# Extractor nicht mitversionieren / don't commit the extractor binary
+extractor.exe
+scs_extractor.exe
+extractor/
+
+# Exportierte Mods / exported mods
+*.scs
+
+# Python
+__pycache__/
+*.pyc

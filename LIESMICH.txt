@@ -1,0 +1,30 @@
+ETS2 TUNER (BETA)  -  Kurzanleitung
+===================================
+Hinweis: Dies ist eine fruehe Beta-Version. Es kann noch Fehler geben.
+Vor groesseren Aenderungen ein Backup deines Profils machen.
+
+VORAUSSETZUNGEN
+- Python 3.8 oder neuer (https://www.python.org/downloads/, bei der
+  Installation "Add python.exe to PATH" anhaken). Keine Zusatzpakete noetig.
+- Extractor zum Entpacken der Spieldaten. Empfohlen:
+  https://github.com/sk-zk/Extractor/releases  ->  extractor.exe
+  Die extractor.exe einfach in diesen Ordner legen.
+
+START
+1. Doppelklick auf "Start.bat". Der Browser oeffnet sich mit dem Tool.
+   (Das schwarze Fenster offen lassen, solange du das Tool nutzt.)
+2. Sprache oben rechts umschalten (DE / EN).
+3. Beim ersten Start oeffnen sich die Einstellungen. Spielordner und
+   Mod-Ordner werden automatisch erkannt. "Spieldaten entpacken" klicken.
+4. Fahrzeug waehlen -> Motor oder Getriebe waehlen -> "+ Neue Version".
+5. Links die Kennfelder/Werte anklicken und anpassen.
+6. "Mod exportieren" -> "In Mod-Ordner speichern".
+7. Im Spiel: Mod-Manager -> Mod aktivieren -> Werkstatt -> Motor/Getriebe.
+
+HINWEISE
+- Deine Arbeit wird automatisch in "projekt.json" gespeichert.
+- Nach einem Spiel-Update: Einstellungen -> "Spieldaten entpacken".
+- Preise/Freischaltlevel/Namen: Einstellungen -> "Shop-Werte anzeigen".
+- Felder unter "Experimentell (ab 1.61)" nur bei ETS2 1.61+ setzen.
+- Nur fuer Singleplayer (in TruckersMP nicht erlaubt).
+- Probleme? game.log.txt aus Dokumente\Euro Truck Simulator 2\ ansehen.
